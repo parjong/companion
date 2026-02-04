@@ -1,3 +1,5 @@
+"""Summarize extra page"""
+
 from dataclasses import dataclass
 
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -10,7 +12,8 @@ from urllib.parse import urlparse
 from urllib.parse import urlunparse
 
 
-class Summary(BaseModel):
+# For LLM Generation
+class Summary(BaseModel):  # LLMResult
     title: str = Field(
         description="The title of concise main title of the article or page"
     )
@@ -20,7 +23,7 @@ class Summary(BaseModel):
 
 
 @dataclass
-class Page:
+class Page:  # TODO Use data.Page
     url: URL
     title: str
     date: str
@@ -40,12 +43,17 @@ class Page:
         return cls(url=urlparse(d["url"]), title=d["title"], date=d["date"])
 
 
+# For extra page
+
+
+# core.py -> llm_summary.py
 def page_of_(url: str) -> Page:
     with urllib.request.urlopen(url) as response:
         page_html = response.read()
 
         page_url = urlparse(response.geturl())
 
+    # Rewrite after redirection
     if page_url.netloc == "www.linkedin.com":
         if page_url.path.startswith("/posts/"):
             page_url = page_url._replace(query="")

@@ -59,6 +59,7 @@ class PersonalStorage:
         )
 
     def add_arXiv_article(self, arxiv_id: str):
+        # TODO Pass URL & ARXIVMetadata
         search = arxiv.Search(id_list=[arxiv_id])
         results = list(search.results())
         paper = results[0]
@@ -73,6 +74,7 @@ class PersonalStorage:
         ).execute(self._client)
 
     def add_other_article(self, page: Page):
+        # TODO Pass URL & EXTRAMetadata
         CreateDiscussion(
             repositoryId=self.REPOSITORY_ID,
             categoryId="DIC_kwDOBRyrHc4Cz61s",
@@ -85,12 +87,13 @@ class PersonalStorage:
 @click.argument("summary_path")
 def main(summary_path: str) -> None:
     with open(summary_path, "r") as f:
-        page = Page.fromdict(json.load(f))
+        page = Page.fromdict(json.load(f))  # TODO
 
     storage = PersonalStorage()
 
+    # TODO page.metadata.doctype == arxiv
     if page.url.netloc == "arxiv.org":
-        arxiv_id = page.url.path.split("/")[-1]
+        arxiv_id = page.url.path.split("/")[-1]  # page.metadata.identifier
         storage.add_arXiv_article(arxiv_id)
         # TODO Implement fallback to "other" feature
     else:

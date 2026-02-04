@@ -15,6 +15,7 @@ dependencies = [
 ]
 
 [project.scripts]
+# endpoint-readit-summarize-arxiv = "endpoint.readit.app.summarize_other:main"
 endpoint-readit-summarize-other = "endpoint.readit.app.summarize_other:main"
 endpoint-readit-send-to-personal = "endpoint.readit.app.send_to_personal:main"
 endpoint-readit-send-to-queue-v2 = "endpoint.readit.app.send_to_queue_v2:main"
