@@ -7,6 +7,7 @@ from gql.transport.requests import RequestsHTTPTransport as HTTPTransport
 import json
 from logging import getLogger
 import os
+from typing import NewType
 
 from endpoint.readit.core import Page
 
@@ -14,15 +15,17 @@ from endpoint.readit.core import Page
 logger = getLogger(__name__)
 logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())
 
+ProjectItemID = NewType("ProjectItemID", str)
+
 
 class AddProjectV2DraftIssue:
     QUERY = gql("""
     mutation ($projectId: ID!, $title: String!, $body: String!) {
-      addProjectV2DraftIssue(input: {
+      op: addProjectV2DraftIssue(input: {
         projectId: $projectId,
         title: $title,
         body: $body,
-      }) { projectItem { id } }
+      }) { item: projectItem { id } }
     }
     """)
 
@@ -33,7 +36,35 @@ class AddProjectV2DraftIssue:
             "body": body,
         }
 
-    def execute(self, client):
+    def execute(self, client) -> ProjectItemID:
+        result = client.execute(self.QUERY, variable_values=self._values)
+        logger.debug(result)
+        return result["op"]["item"]["id"]
+
+
+class UpdateTextFieldValue:
+    QUERY = gql("""
+    mutation ($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: String!) {
+      updateProjectV2ItemFieldValue(input: {
+        projectId: $projectId,
+        itemId: $itemId,
+        fieldId: $fieldId,
+        value: { text: $value }
+      }) { item: projectV2Item { id } }
+    }
+    """)
+
+    def __init__(
+        self, *, projectId: str, itemId: ProjectItemID, fieldId: str, value: str
+    ):
+        self._values = {
+            "projectId": projectId,
+            "itemId": str(itemId),
+            "fieldId": fieldId,
+            "value": value,
+        }
+
+    def execute(self, client) -> ProjectItemID:
         result = client.execute(self.QUERY, variable_values=self._values)
         logger.debug(result)
         pass
@@ -41,6 +72,9 @@ class AddProjectV2DraftIssue:
 
 class Queue:
     PROJECT_ID = "PVT_kwHOAOPA3c4BNgtr"
+
+    URL_FIELD_ID = "PVTF_lAHOAOPA3c4BNgtrzg9Ovbk"
+    ISSUE_DATE_FIELD_ID = "PVTF_lAHOAOPA3c4BNgtrzg9OvdE"
 
     def __init__(self):
         github_graphql_url = os.environ["GITHUB_GRAPHQL_URL"]
@@ -55,8 +89,22 @@ class Queue:
         )
 
     def add(self, page: Page):
-        AddProjectV2DraftIssue(
+        item_id: ProjectItemID = AddProjectV2DraftIssue(
             projectId=self.PROJECT_ID, title=page.title, body=page.url_as_str()
+        ).execute(self._client)
+
+        UpdateTextFieldValue(
+            projectId=self.PROJECT_ID,
+            itemId=item_id,
+            fieldId=self.URL_FIELD_ID,
+            value=page.url_as_str(),
+        ).execute(self._client)
+
+        UpdateTextFieldValue(
+            projectId=self.PROJECT_ID,
+            itemId=item_id,
+            fieldId=self.ISSUE_DATE_FIELD_ID,
+            value=page.date,
         ).execute(self._client)
 
 
