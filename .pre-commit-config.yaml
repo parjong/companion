@@ -14,17 +14,27 @@ repos:
     # hooks/ END
   # actionlint/ END
 
+  - repo: local
+    hooks:
+      - id: ruff-format
+        name: 'Run ruff format'
+        types: [python]
+        language: system
+        entry: uv run ruff format
+      # ruff-format/ END
+
+      - id: ruff-check
+        name: 'Run ruff check'
+        types: [python]
+        language: system
+        entry: uv run ruff check
+      # ruff-check/ END
+    # hooks/ END
+  # local/ END
+
   - repo: https://github.com/ddanier/sub-pre-commit.git
     rev: v4.5.1
     hooks:
-      - id: sub-pre-commit
-        alias: server
-        name: 'Run pre-commit for server'
-        args: ['-p', 'server']
-        files: "^server/.*"
-        stages: ["pre-commit"]
-      # server/ END
-
       - id: sub-pre-commit
         alias: cikit
         name: 'Run pre-commit for cikit'

@@ -28,7 +28,7 @@ jobs:
       - name: 'Install cikit'
         run: uv tool install --force ./.github/cikit
       - name: 'Install server'
-        run: uv tool install --force ./server
+        run: uv tool install --force ./
 
       - name: 'Create endpoint.config.toml'
         env:
