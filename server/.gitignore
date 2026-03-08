@@ -1,6 +1,0 @@
-/uv.lock
-/.python-version
-
-# Reserved for local testing
-/etc/user.env
-/endpoint.config.toml
