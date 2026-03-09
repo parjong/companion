@@ -5,6 +5,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel
 from pydantic import Field
+import trafilatura
 from typing import Any
 import urllib.request
 from urllib.parse import ParseResult as URL
@@ -52,8 +53,26 @@ class Page:
         )
 
 
+_PROMPT = ChatPromptTemplate.from_template("""
+Analyze the following content from a webpage and extract two pieces of information:
+1. The concise main title of the article or page.
+2. The issue or publication date as YYYY/MM/DD format (if available).
+   - If not available, state "????/??/??".
+
+Format your answer as a JSON object with keys "date" and "title".
+
+Content: {content}
+""")
+
+_LLM = ChatGoogleGenerativeAI(
+    model="gemini-2.5-flash"
+).with_structured_output(Summary)
+
+_CHAIN = _PROMPT | _LLM
+
+
 def page_of_(url: str) -> Page:
-    with urllib.request.urlopen(url) as response:
+    with urllib.request.urlopen(url, timeout=10) as response:
         page_html = response.read()
 
         page_url = urlparse(response.geturl())
@@ -62,22 +81,11 @@ def page_of_(url: str) -> Page:
         if page_url.path.startswith("/posts/"):
             page_url = page_url._replace(query="")
 
-    prompt = ChatPromptTemplate.from_template("""
-    Analyze the following content from a webpage and extract two pieces of information:
-    1. The concise main title of the article or page.
-    2. The issue or publication date as YYYY/MM/DD format (if available).
-       - If not available, state "????/??/??".
+    # Try to extract content using trafilatura
+    content = trafilatura.extract(page_html)
+    if not content:
+        content = page_html
 
-    Format your answer as a JSON object with keys "date" and "title".
-
-    Content: {content}
-    """)
-    structured_llm = ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash"
-    ).with_structured_output(Summary)
-
-    chain = prompt | structured_llm
-
-    summary = chain.invoke({"content": page_html})
+    summary = _CHAIN.invoke({"content": content})
 
     return Page(url=page_url, title=summary.title, date=summary.date)
