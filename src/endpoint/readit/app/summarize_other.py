@@ -22,24 +22,28 @@ def main(output_path: str, url: str) -> None:
 
     parsed_url = urlparse(url)
 
-    if parsed_url.netloc == "arxiv.org":
-        arxiv_id = parsed_url.path.split("/")[-1]
-        search = arxiv.Search(id_list=[arxiv_id])
-        results = list(search.results())
-        paper = results[0]
+    try:
+        if parsed_url.netloc == "arxiv.org":
+            arxiv_id = parsed_url.path.split("/")[-1]
+            search = arxiv.Search(id_list=[arxiv_id])
+            results = list(search.results())
+            paper = results[0]
 
-        page = Page(
-            url=parsed_url,
-            title=paper.title,
-            date=paper.published.strftime("%Y/%m/%d"),
-            kind="arxiv",
-            metadata={
-                "summary": paper.summary,
-                "year": str(paper.published.year),
-            },
-        )
-    else:
-        page = page_of_(url)
+            page = Page(
+                url=parsed_url,
+                title=paper.title,
+                date=paper.published.strftime("%Y/%m/%d"),
+                kind="arxiv",
+                metadata={
+                    "summary": paper.summary,
+                    "year": str(paper.published.year),
+                },
+            )
+        else:
+            page = page_of_(url)
+    except Exception as e:
+        logger.error("Failed to summarize '%s': %s", url, e)
+        raise click.ClickException(str(e))
 
     logger.info("Result: '%s'", page)
 
