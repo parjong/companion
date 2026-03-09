@@ -33,7 +33,10 @@ def main(output_path: str, url: str) -> None:
             title=paper.title,
             date=paper.published.strftime("%Y/%m/%d"),
             kind="arxiv",
-            metadata={"summary": paper.summary},
+            metadata={
+                "summary": paper.summary,
+                "year": str(paper.published.year),
+            },
         )
     else:
         page = page_of_(url)

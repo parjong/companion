@@ -60,7 +60,7 @@ class PersonalStorage:
         summary = page.metadata.get("summary", "")
         lines = [page.url_as_str(), "", f"> {summary}"]
 
-        year = page.date.split("/")[0]
+        year = page.metadata.get("year", "????")
 
         CreateDiscussion(
             repositoryId=self.REPOSITORY_ID,
