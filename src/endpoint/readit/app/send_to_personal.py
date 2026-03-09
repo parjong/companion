@@ -61,20 +61,25 @@ class PersonalStorage:
         lines = [page.url_as_str(), "", f"> {summary}"]
 
         year = page.metadata.get("year", "????")
+        title = f"[{year}] {page.title}"
+        body = "\n".join(lines)
 
         CreateDiscussion(
             repositoryId=self.REPOSITORY_ID,
             categoryId="DIC_kwDOBRyrHc4Cz64i",
-            title=f"[{year}] {page.title}",
-            body="\n".join(lines),
+            title=title,
+            body=body,
         ).execute(self._client)
 
     def add_other_article(self, page: Page):
+        title = f"[{page.date}] {page.title}"
+        body = page.url_as_str()
+
         CreateDiscussion(
             repositoryId=self.REPOSITORY_ID,
             categoryId="DIC_kwDOBRyrHc4Cz61s",
-            title=f"[{page.date}] {page.title}",
-            body=f"{page.url_as_str()}",
+            title=title,
+            body=body,
         ).execute(self._client)
 
 
