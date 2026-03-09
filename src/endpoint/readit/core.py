@@ -53,7 +53,7 @@ class Page:
 
 
 def page_of_(url: str) -> Page:
-    with urllib.request.urlopen(url) as response:
+    with urllib.request.urlopen(url, timeout=60) as response:
         page_html = response.read()
 
         page_url = urlparse(response.geturl())
