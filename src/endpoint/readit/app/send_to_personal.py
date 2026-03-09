@@ -1,5 +1,3 @@
-import arxiv
-
 import click
 
 from gql import Client
@@ -58,17 +56,16 @@ class PersonalStorage:
             )
         )
 
-    def add_arXiv_article(self, arxiv_id: str):
-        search = arxiv.Search(id_list=[arxiv_id])
-        results = list(search.results())
-        paper = results[0]
+    def add_arXiv_article(self, page: Page):
+        summary = page.metadata.get("summary", "")
+        lines = [page.url_as_str(), "", f"> {summary}"]
 
-        lines = [f"https://arxiv.org/abs/{arxiv_id}", "", f"> {paper.summary}"]
+        year = page.date.split("/")[0]
 
         CreateDiscussion(
             repositoryId=self.REPOSITORY_ID,
             categoryId="DIC_kwDOBRyrHc4Cz64i",
-            title=f"[{paper.published.year}] {paper.title}",
+            title=f"[{year}] {page.title}",
             body="\n".join(lines),
         ).execute(self._client)
 
@@ -89,10 +86,8 @@ def main(summary_path: str) -> None:
 
     storage = PersonalStorage()
 
-    if page.url.netloc == "arxiv.org":
-        arxiv_id = page.url.path.split("/")[-1]
-        storage.add_arXiv_article(arxiv_id)
-        # TODO Implement fallback to "other" feature
+    if page.kind == "arxiv":
+        storage.add_arXiv_article(page)
     else:
         storage.add_other_article(page)
 

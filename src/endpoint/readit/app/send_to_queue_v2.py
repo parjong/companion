@@ -89,8 +89,14 @@ class Queue:
         )
 
     def add(self, page: Page):
+        body = page.url_as_str()
+        if page.kind == "arxiv":
+            summary = page.metadata.get("summary", "")
+            if summary:
+                body = f"{page.url_as_str()}\n\n> {summary}"
+
         item_id: ProjectItemID = AddProjectV2DraftIssue(
-            projectId=self.PROJECT_ID, title=page.title, body=page.url_as_str()
+            projectId=self.PROJECT_ID, title=page.title, body=body
         ).execute(self._client)
 
         UpdateTextFieldValue(
