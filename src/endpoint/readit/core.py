@@ -65,7 +65,7 @@ Content: {content}
 """)
 
 _LLM = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash"
+    model="gemini-2.0-flash"
 ).with_structured_output(Summary)
 
 _CHAIN = _PROMPT | _LLM
