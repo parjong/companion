@@ -64,7 +64,7 @@ def page_of_(url: str) -> Page:
             page_url = page_url._replace(query="")
 
     # Try to extract content using trafilatura
-    content = trafilatura.extract(page_html)
+    content = trafilatura.extract(page_html, with_metadata=True)
     if not content:
         content = page_html
 
