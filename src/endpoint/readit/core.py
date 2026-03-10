@@ -5,6 +5,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel
 from pydantic import Field
+import trafilatura
 from typing import Any
 import urllib.request
 from urllib.parse import ParseResult as URL
@@ -62,6 +63,11 @@ def page_of_(url: str) -> Page:
         if page_url.path.startswith("/posts/"):
             page_url = page_url._replace(query="")
 
+    # Try to extract content using trafilatura
+    content = trafilatura.extract(page_html, with_metadata=True)
+    if not content:
+        content = page_html
+
     prompt = ChatPromptTemplate.from_template("""
     Analyze the following content from a webpage and extract two pieces of information:
     1. The concise main title of the article or page.
@@ -78,6 +84,6 @@ def page_of_(url: str) -> Page:
 
     chain = prompt | structured_llm
 
-    summary = chain.invoke({"content": page_html})
+    summary = chain.invoke({"content": content})
 
     return Page(url=page_url, title=summary.title, date=summary.date)

@@ -12,6 +12,7 @@ dependencies = [
     "gql[requests]==4.0.*",
     "langchain-google-genai>=4.2.0",
     "pydantic>=2.12.5",
+    "trafilatura>=2.0.0",
 ]
 
 [project.scripts]
