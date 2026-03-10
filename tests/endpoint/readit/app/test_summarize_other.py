@@ -44,7 +44,7 @@ def test_summarize_other_error(tmp_path):
     with patch.object(endpoint.readit.app.summarize_other, "page_of_") as mock_page_of:
         mock_page_of.side_effect = Exception("Simulated fetch error")
 
-        result = runner.invoke(main, ["-o", str(output_path), "http://example.com"])
+        result = runner.invoke(main, ["-o", str(output_path), "http://non-existent-domain.test"])
 
         assert result.exit_code != 0
         assert "Simulated fetch error" in str(result.exception) or "Simulated fetch error" in result.output
