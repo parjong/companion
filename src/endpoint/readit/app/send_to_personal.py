@@ -8,7 +8,7 @@ import json
 from logging import getLogger
 import os
 
-from endpoint.readit.core import Page
+from endpoint.readit.core import ArxivPage, OtherPage, page_from_dict
 
 
 logger = getLogger(__name__)
@@ -56,11 +56,11 @@ class PersonalStorage:
             )
         )
 
-    def add_arXiv_article(self, page: Page):
-        summary = page.metadata.get("summary", "")
-        lines = [page.url_as_str(), "", f"> {summary}"]
+    def add_arXiv_article(self, page: ArxivPage):
+        summary = page.abstract
+        lines = [str(page.url), "", f"> {summary}"]
 
-        year = page.metadata.get("year", "????")
+        year = page.date
         title = f"[{year}] {page.title}"
         body = "\n".join(lines)
 
@@ -71,9 +71,9 @@ class PersonalStorage:
             body=body,
         ).execute(self._client)
 
-    def add_other_article(self, page: Page):
+    def add_other_article(self, page: OtherPage):
         title = f"[{page.date}] {page.title}"
-        body = page.url_as_str()
+        body = str(page.url)
 
         CreateDiscussion(
             repositoryId=self.REPOSITORY_ID,
@@ -87,13 +87,13 @@ class PersonalStorage:
 @click.argument("summary_path")
 def main(summary_path: str) -> None:
     with open(summary_path, "r") as f:
-        page = Page.fromdict(json.load(f))
+        page = page_from_dict(json.load(f))
 
     storage = PersonalStorage()
 
-    if page.kind == "arxiv":
+    if isinstance(page, ArxivPage):
         storage.add_arXiv_article(page)
-    else:
+    elif isinstance(page, OtherPage):
         storage.add_other_article(page)
 
     logger.info("Done")

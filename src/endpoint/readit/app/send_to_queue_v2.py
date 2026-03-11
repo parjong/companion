@@ -9,7 +9,7 @@ from logging import getLogger
 import os
 from typing import NewType
 
-from endpoint.readit.core import Page
+from endpoint.readit.core import page_from_dict
 
 
 logger = getLogger(__name__)
@@ -88,16 +88,16 @@ class Queue:
             )
         )
 
-    def add(self, page: Page):
+    def add(self, page):
         item_id: ProjectItemID = AddProjectV2DraftIssue(
-            projectId=self.PROJECT_ID, title=page.title, body=page.url_as_str()
+            projectId=self.PROJECT_ID, title=page.title, body=str(page.url)
         ).execute(self._client)
 
         UpdateTextFieldValue(
             projectId=self.PROJECT_ID,
             itemId=item_id,
             fieldId=self.URL_FIELD_ID,
-            value=page.url_as_str(),
+            value=str(page.url),
         ).execute(self._client)
 
         UpdateTextFieldValue(
@@ -112,7 +112,7 @@ class Queue:
 @click.argument("summary_path")
 def main(summary_path: str) -> None:
     with open(summary_path, "r") as f:
-        page = Page.fromdict(json.load(f))
+        page = page_from_dict(json.load(f))
 
     logger.info("page = '%s'", page)
 

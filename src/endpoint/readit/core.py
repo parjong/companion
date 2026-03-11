@@ -1,16 +1,12 @@
-from dataclasses import dataclass
-from dataclasses import field
-
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel
 from pydantic import Field
+from pydantic import AnyHttpUrl
+from pydantic import TypeAdapter
 import trafilatura
-from typing import Any
+from typing import Any, Literal, Union, Annotated
 import urllib.request
-from urllib.parse import ParseResult as URL
-from urllib.parse import urlparse
-from urllib.parse import urlunparse
 
 
 class Summary(BaseModel):
@@ -22,46 +18,40 @@ class Summary(BaseModel):
     )
 
 
-@dataclass
-class Page:
-    url: URL
+class ArxivPage(BaseModel):
+    kind: Literal["arxiv"] = "arxiv"
+    url: AnyHttpUrl
     title: str
-    date: str
-    kind: str = "other"
-    metadata: dict[str, Any] = field(default_factory=dict)
-
-    def url_as_str(self) -> str:
-        return urlunparse(self.url)
-
-    def asdict(self):
-        return {
-            "url": urlunparse(self.url),
-            "title": self.title,
-            "date": self.date,
-            "kind": self.kind,
-            "metadata": self.metadata,
-        }
-
-    @classmethod
-    def fromdict(cls, d):
-        return cls(
-            url=urlparse(d["url"]),
-            title=d["title"],
-            date=d["date"],
-            kind=d.get("kind", "other"),
-            metadata=d.get("metadata", {}),
-        )
+    date: str = Field(pattern=r"^\d{4}$")
+    paper_id: str
+    abstract: str
 
 
-def page_of_(url: str) -> Page:
+class OtherPage(BaseModel):
+    kind: Literal["other"] = "other"
+    url: AnyHttpUrl
+    title: str
+    date: str = Field(pattern=r"^\d{4}/\d{2}/\d{2}$|^\?\?\?\?/\?\?/\?\?$")
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+Page = Annotated[Union[ArxivPage, OtherPage], Field(discriminator="kind")]
+page_adapter = TypeAdapter(Page)
+
+
+def page_from_dict(d: dict[str, Any]) -> Page:
+    return page_adapter.validate_python(d)
+
+
+def page_to_dict(page: Page) -> dict[str, Any]:
+    # We use mode='json' to ensure AnyHttpUrl is serialized to string
+    return page_adapter.dump_python(page, mode="json")
+
+
+def page_of_(url: str) -> OtherPage:
     with urllib.request.urlopen(url, timeout=60) as response:
         page_html = response.read()
-
-        page_url = urlparse(response.geturl())
-
-    if page_url.netloc == "www.linkedin.com":
-        if page_url.path.startswith("/posts/"):
-            page_url = page_url._replace(query="")
+        page_url = response.geturl()
 
     # Try to extract content using trafilatura
     content = trafilatura.extract(page_html, with_metadata=True)
@@ -86,4 +76,4 @@ def page_of_(url: str) -> Page:
 
     summary = chain.invoke({"content": content})
 
-    return Page(url=page_url, title=summary.title, date=summary.date)
+    return OtherPage(url=page_url, title=summary.title, date=summary.date)
