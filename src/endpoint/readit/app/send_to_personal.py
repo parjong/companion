@@ -92,7 +92,13 @@ def main(summary_path: str) -> None:
     storage = PersonalStorage()
 
     if page.kind == "arxiv":
-        storage.add_arXiv_article(page)
+        try:
+            storage.add_arXiv_article(page)
+        except Exception as e:
+            logger.warning(
+                "Failed to add arXiv article, falling back to other", exc_info=e
+            )
+            storage.add_other_article(page)
     else:
         storage.add_other_article(page)
 
