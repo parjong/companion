@@ -61,15 +61,20 @@ class PersonalStorage:
         }
 
     def add_article(self, page: Page):
-        handler = self._handlers.get(page.kind, self.add_other_article)
-        try:
-            handler(page)
-        except Exception as e:
-            handler_name = getattr(handler, "__name__", str(handler))
-            logger.error(f"Failed to add article with {handler_name}: {e}")
-            if handler != self.add_other_article:
+        handler = self._handlers.get(page.kind)
+        if handler:
+            try:
+                handler(page)
+                return
+            except Exception as e:
+                logger.error(f"Failed to add article with {handler.__name__}: {e}")
                 logger.info("Falling back to add_other_article")
-                self.add_other_article(page)
+
+        try:
+            self.add_other_article(page)
+        except Exception as e:
+            logger.error(f"Failed to add article with add_other_article: {e}")
+            raise
 
     def add_arXiv_article(self, page: Page):
         summary = page.metadata.get("summary", "")
