@@ -5,5 +5,9 @@
 /etc/user.env
 /endpoint.config.toml
 
+__pycache__/
+*.py[cod]
+*$py.class
+
 # Reserved for local automation (across the whole repository)
 Makefile
