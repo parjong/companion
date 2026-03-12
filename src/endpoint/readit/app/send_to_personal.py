@@ -5,8 +5,11 @@ from gql import gql
 from gql.transport.requests import RequestsHTTPTransport as HTTPTransport
 
 import json
+from abc import ABC
+from abc import abstractmethod
 from logging import getLogger
 import os
+from typing import Optional
 
 from endpoint.readit.core import Page
 
@@ -83,6 +86,49 @@ class PersonalStorage:
         ).execute(self._client)
 
 
+class Handler(ABC):
+    @abstractmethod
+    def set_next(self, handler: "Handler") -> "Handler":
+        pass
+
+    @abstractmethod
+    def handle(self, page: Page) -> None:
+        pass
+
+
+class AbstractHandler(Handler):
+    _next_handler: Optional[Handler] = None
+
+    def set_next(self, handler: Handler) -> Handler:
+        self._next_handler = handler
+        return handler
+
+    def handle(self, page: Page) -> None:
+        if self._next_handler:
+            return self._next_handler.handle(page)
+
+        return None
+
+
+class ArxivHandler(AbstractHandler):
+    def __init__(self, storage: PersonalStorage):
+        self._storage = storage
+
+    def handle(self, page: Page) -> None:
+        if page.kind == "arxiv":
+            self._storage.add_arXiv_article(page)
+        else:
+            super().handle(page)
+
+
+class OtherHandler(AbstractHandler):
+    def __init__(self, storage: PersonalStorage):
+        self._storage = storage
+
+    def handle(self, page: Page) -> None:
+        self._storage.add_other_article(page)
+
+
 @click.command()
 @click.argument("summary_path")
 def main(summary_path: str) -> None:
@@ -91,9 +137,11 @@ def main(summary_path: str) -> None:
 
     storage = PersonalStorage()
 
-    if page.kind == "arxiv":
-        storage.add_arXiv_article(page)
-    else:
-        storage.add_other_article(page)
+    arxiv_handler = ArxivHandler(storage)
+    other_handler = OtherHandler(storage)
+
+    arxiv_handler.set_next(other_handler)
+
+    arxiv_handler.handle(page)
 
     logger.info("Done")
