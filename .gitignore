@@ -3,7 +3,6 @@
 
 # Reserved for local testing
 /etc/user.env
-/endpoint.config.toml
 
 # Reserved for local automation (across the whole repository)
 Makefile
