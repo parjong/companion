@@ -115,10 +115,11 @@ class ArxivHandler(AbstractHandler):
         self._storage = storage
 
     def handle(self, page: Page) -> None:
-        if page.kind == "arxiv":
-            self._storage.add_arXiv_article(page)
-        else:
+        if page.kind != "arxiv":
             super().handle(page)
+            return
+
+        self._storage.add_arXiv_article(page)
 
 
 class OtherHandler(AbstractHandler):
