@@ -1,21 +1,16 @@
 import json
 import os
 import urllib.request
-from urllib.parse import urlparse, urlunparse
 from logging import getLogger
-from typing import Any, Dict
 
 import click
 import trafilatura
-from pydantic import BaseModel
+
+from endpoint.readit.core import FetchResult
+from endpoint.readit.core import normalize_url
 
 logger = getLogger(__name__)
 logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())
-
-class FetchResult(BaseModel):
-    url: str
-    html: str
-    trafilatura: Dict[str, Any]
 
 @click.command()
 @click.option("-o", "output_path", required=True)
@@ -28,14 +23,10 @@ def main(output_path: str, url: str) -> None:
         page_html_bytes = response.read()
         # We need the HTML as a string for the output JSON
         page_html = page_html_bytes.decode("utf-8", errors="replace")
-        page_url = urlparse(response.geturl())
+        final_url = response.geturl()
 
-    # Normalize the URL (matching logic in core.py)
-    if page_url.netloc == "www.linkedin.com":
-        if page_url.path.startswith("/posts/"):
-            page_url = page_url._replace(query="")
-
-    normalized_url = urlunparse(page_url)
+    # Normalize the URL
+    normalized_url = normalize_url(final_url)
 
     # Extract content using trafilatura
     # output_format="json" with with_metadata=True gives a JSON string with metadata

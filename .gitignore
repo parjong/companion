@@ -6,3 +6,7 @@
 
 # Reserved for local automation (across the whole repository)
 Makefile
+
+# Python bytecode
+__pycache__/
+*.pyc
