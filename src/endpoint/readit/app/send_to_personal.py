@@ -56,6 +56,34 @@ class PersonalStorage:
             )
         )
 
+        self._handlers = {
+            "arxiv": self.add_arXiv_article,
+        }
+
+    def add_article(self, page: Page):
+        if self._add_known_article_if_possible(page):
+            return
+
+        try:
+            self.add_other_article(page)
+        except Exception as e:
+            logger.error(f"Failed to add article with add_other_article: {e}")
+            raise
+
+    def _add_known_article_if_possible(self, page: Page) -> bool:
+        handler = self._handlers.get(page.kind)
+        if not handler:
+            return False
+
+        try:
+            handler(page)
+            return True
+        except Exception as e:
+            handler_name = getattr(handler, "__name__", str(handler))
+            logger.error(f"Failed to add article with {handler_name}: {e}")
+            logger.info("Falling back to add_other_article")
+            return False
+
     def add_arXiv_article(self, page: Page):
         summary = page.metadata.get("summary", "")
         lines = [page.url_as_str(), "", f"> {summary}"]
@@ -91,15 +119,6 @@ def main(summary_path: str) -> None:
 
     storage = PersonalStorage()
 
-    if page.kind == "arxiv":
-        try:
-            storage.add_arXiv_article(page)
-        except Exception as e:
-            logger.warning(
-                "Failed to add arXiv article, falling back to other", exc_info=e
-            )
-            storage.add_other_article(page)
-    else:
-        storage.add_other_article(page)
+    storage.add_article(page)
 
     logger.info("Done")

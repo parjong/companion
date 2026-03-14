@@ -25,16 +25,8 @@ jobs:
           version: 0.9.22 # Latest as of 2026 Jan 07
         # with/ END
 
-      - name: 'Install cikit'
-        run: uv tool install --force ./.github/cikit
       - name: 'Install server'
         run: uv tool install --force ./
-
-      - name: 'Create endpoint.config.toml'
-        env:
-          GIST_DOWNLOAD_TOKEN: ${{ secrets.TOKEN }}
-          GIST_URL: ${{ secrets.CONFIG_GIST_URL }}
-        run: cikit download-gist -o endpoint.config.toml "$GIST_URL/prod.toml"
 
       - name: 'Enqueue'
         env:
