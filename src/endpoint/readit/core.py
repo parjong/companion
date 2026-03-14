@@ -60,18 +60,15 @@ class Page:
         )
 
 
-def normalize_url(url: str) -> str:
-    parsed_url = urlparse(url)
-    if parsed_url.netloc == "www.linkedin.com":
-        if parsed_url.path.startswith("/posts/"):
-            parsed_url = parsed_url._replace(query="")
-    return urlunparse(parsed_url)
-
-
 def page_of_(url: str) -> Page:
     with urllib.request.urlopen(url, timeout=60) as response:
         page_html = response.read()
-        page_url = urlparse(normalize_url(response.geturl()))
+
+        page_url = urlparse(response.geturl())
+
+    if page_url.netloc == "www.linkedin.com":
+        if page_url.path.startswith("/posts/"):
+            page_url = page_url._replace(query="")
 
     # Try to extract content using trafilatura
     content = trafilatura.extract(page_html, with_metadata=True)

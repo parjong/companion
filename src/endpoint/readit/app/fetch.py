@@ -1,16 +1,25 @@
 import json
 import os
 import urllib.request
+from urllib.parse import urlparse, urlunparse
 from logging import getLogger
 
 import click
 import trafilatura
 
 from endpoint.readit.core import FetchResult
-from endpoint.readit.core import normalize_url
 
 logger = getLogger(__name__)
 logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())
+
+
+def normalize_url(url: str) -> str:
+    parsed_url = urlparse(url)
+    if parsed_url.netloc == "www.linkedin.com":
+        if parsed_url.path.startswith("/posts/"):
+            parsed_url = parsed_url._replace(query="")
+    return urlunparse(parsed_url)
+
 
 @click.command()
 @click.option("-o", "output_path", required=True)
