@@ -1,14 +1,12 @@
-from dataclasses import dataclass
-from dataclasses import field
+from typing import Annotated, Any, Literal, Union
 
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel
 from pydantic import Field
+from pydantic import TypeAdapter
 import trafilatura
-from typing import Any
 import urllib.request
-from urllib.parse import ParseResult as URL
 from urllib.parse import urlparse
 from urllib.parse import urlunparse
 
@@ -22,38 +20,35 @@ class Summary(BaseModel):
     )
 
 
-@dataclass
-class Page:
-    url: URL
+class BasePage(BaseModel):
+    url: str
     title: str
-    date: str
-    kind: str = "other"
-    metadata: dict[str, Any] = field(default_factory=dict)
 
     def url_as_str(self) -> str:
-        return urlunparse(self.url)
-
-    def asdict(self):
-        return {
-            "url": urlunparse(self.url),
-            "title": self.title,
-            "date": self.date,
-            "kind": self.kind,
-            "metadata": self.metadata,
-        }
-
-    @classmethod
-    def fromdict(cls, d):
-        return cls(
-            url=urlparse(d["url"]),
-            title=d["title"],
-            date=d["date"],
-            kind=d.get("kind", "other"),
-            metadata=d.get("metadata", {}),
-        )
+        return self.url
 
 
-def page_of_(url: str) -> Page:
+class ArxivPage(BasePage):
+    kind: Literal["arxiv"] = "arxiv"
+    date: str = Field(pattern=r"^\d{4}$")
+    paper_id: str
+    abstract: str
+
+
+class OtherPage(BasePage):
+    kind: Literal["other"] = "other"
+    date: str = Field(pattern=r"^(\d{4}/\d{2}/\d{2}|\?\?\?\?/\?\?/\?\?)$")
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+Page = Annotated[Union[ArxivPage, OtherPage], Field(discriminator="kind")]
+
+
+def page_fromdict(d: dict) -> Page:
+    return TypeAdapter(Page).validate_python(d)
+
+
+def page_of_(url: str) -> OtherPage:
     with urllib.request.urlopen(url, timeout=60) as response:
         page_html = response.read()
 
@@ -86,4 +81,4 @@ def page_of_(url: str) -> Page:
 
     summary = chain.invoke({"content": content})
 
-    return Page(url=page_url, title=summary.title, date=summary.date)
+    return OtherPage(url=urlunparse(page_url), title=summary.title, date=summary.date)

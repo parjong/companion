@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 
 import click
 
-from endpoint.readit.core import Page
+from endpoint.readit.core import ArxivPage
 from endpoint.readit.core import page_of_
 
 
@@ -28,15 +28,12 @@ def main(output_path: str, url: str) -> None:
         results = list(search.results())
         paper = results[0]
 
-        page = Page(
-            url=parsed_url,
+        page = ArxivPage(
+            url=url,
             title=paper.title,
-            date=paper.published.strftime("%Y/%m/%d"),
-            kind="arxiv",
-            metadata={
-                "summary": paper.summary,
-                "year": str(paper.published.year),
-            },
+            date=str(paper.published.year),
+            paper_id=arxiv_id,
+            abstract=paper.summary,
         )
     else:
         page = page_of_(url)
@@ -44,6 +41,6 @@ def main(output_path: str, url: str) -> None:
     logger.info("Result: '%s'", page)
 
     with open(output_path, "w") as f:
-        json.dump(page.asdict(), f, indent=4)
+        json.dump(page.model_dump(), f, indent=4)
 
     logger.info("Check '%s'", output_path)
