@@ -3,12 +3,19 @@ import os
 import urllib.request
 from urllib.parse import urlparse, urlunparse
 from logging import getLogger
+from typing import Any, Dict
 
 import click
 import trafilatura
+from pydantic import BaseModel
 
 logger = getLogger(__name__)
 logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())
+
+class FetchResult(BaseModel):
+    url: str
+    html: str
+    trafilatura: Dict[str, Any]
 
 @click.command()
 @click.option("-o", "output_path", required=True)
@@ -38,16 +45,16 @@ def main(output_path: str, url: str) -> None:
     else:
         trafilatura_data = {}
 
-    # Prepare final output
-    result = {
-        "url": normalized_url,
-        "html": page_html,
-        "trafilatura": trafilatura_data
-    }
+    # Prepare final output using Pydantic
+    result = FetchResult(
+        url=normalized_url,
+        html=page_html,
+        trafilatura=trafilatura_data
+    )
 
     # Write to output file
     with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(result, f, indent=2, ensure_ascii=False)
+        f.write(result.model_dump_json(indent=2))
 
     logger.info("Saved raw data to '%s'", output_path)
 
