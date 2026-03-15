@@ -17,6 +17,7 @@ body:
       label: AS IS
       description: 현재 요약 결과를 입력해주세요.
       placeholder: <... 현재 요약 결과 ...>
+      render: text
     validations:
       required: true
   - type: textarea
@@ -25,5 +26,6 @@ body:
       label: TO BE
       description: 기대하는 결과를 입력해주세요.
       value: "TO BE FILLED"
+      render: text
     validations:
       required: true
