@@ -1,7 +1,7 @@
 name: 😭 제목 요약이 이상해요
 description: 제목 요약이 이상할 때 제보해주세요.
 title: "😭 제목 요약이 이상해요"
-labels: []
+labels: ["태그: 보완 필요", "문제: 제목 요약"]
 body:
   - type: input
     id: url
