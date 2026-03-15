@@ -9,7 +9,7 @@ from logging import getLogger
 import os
 from typing import NewType
 
-from endpoint.readit.core import Page, page_fromdict
+from endpoint.readit.core import Page
 
 
 logger = getLogger(__name__)
@@ -112,7 +112,7 @@ class Queue:
 @click.argument("summary_path")
 def main(summary_path: str) -> None:
     with open(summary_path, "r") as f:
-        page = page_fromdict(json.load(f))
+        page = Page.fromdict(json.load(f))
 
     logger.info("page = '%s'", page)
 

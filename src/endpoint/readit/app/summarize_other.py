@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 
 import click
 
-from endpoint.readit.core import ArxivPage
+from endpoint.readit.core import ArxivPage, FetchResult
 from endpoint.readit.core import page_of_
 
 
@@ -16,10 +16,14 @@ logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())
 
 @click.command()
 @click.option("-o", "output_path", required=True)
-@click.argument("url")
-def main(output_path: str, url: str) -> None:
-    logger.info("Summarize '%s'", url)
+@click.argument("fetch_result_path")
+def main(output_path: str, fetch_result_path: str) -> None:
+    logger.info("Summarize from '%s'", fetch_result_path)
 
+    with open(fetch_result_path, "r", encoding="utf-8") as f:
+        fetch_result = FetchResult.model_validate_json(f.read())
+
+    url = str(fetch_result.url)
     parsed_url = urlparse(url)
 
     if parsed_url.netloc == "arxiv.org":
@@ -36,7 +40,7 @@ def main(output_path: str, url: str) -> None:
             abstract=paper.summary,
         )
     else:
-        page = page_of_(url)
+        page = page_of_(fetch_result)
 
     logger.info("Result: '%s'", page)
 
@@ -44,3 +48,7 @@ def main(output_path: str, url: str) -> None:
         json.dump(page.model_dump(), f, indent=4)
 
     logger.info("Check '%s'", output_path)
+
+
+if __name__ == "__main__":
+    main()

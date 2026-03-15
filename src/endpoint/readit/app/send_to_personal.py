@@ -8,7 +8,7 @@ import json
 from logging import getLogger
 import os
 
-from endpoint.readit.core import ArxivPage, OtherPage, Page, page_fromdict
+from endpoint.readit.core import Page
 
 
 logger = getLogger(__name__)
@@ -21,7 +21,7 @@ class CreateDiscussion:
       createDiscussion(input: {
           repositoryId: $repositoryId,
           categoryId: $categoryId,
-          title: $title,
+title: $title,
           body: $body
       }) { discussion { id } }
     }
@@ -65,10 +65,7 @@ class PersonalStorage:
             return
 
         try:
-            if isinstance(page, OtherPage):
-                self.add_other_article(page)
-            else:
-                logger.error(f"Unsupported page type for default handler: {type(page)}")
+            self.add_other_article(page)
         except Exception as e:
             logger.error(f"Failed to add article with add_other_article: {e}")
             raise
@@ -87,10 +84,12 @@ class PersonalStorage:
             logger.info("Falling back to add_other_article")
             return False
 
-    def add_arXiv_article(self, page: ArxivPage):
-        lines = [page.url_as_str(), "", f"> {page.abstract}"]
+    def add_arXiv_article(self, page: Page):
+        summary = page.metadata.get("summary", "")
+        lines = [page.url_as_str(), "", f"> {summary}"]
 
-        title = f"[{page.date}] {page.title}"
+        year = page.metadata.get("year", "????")
+        title = f"[{year}] {page.title}"
         body = "\n".join(lines)
 
         CreateDiscussion(
@@ -100,7 +99,7 @@ class PersonalStorage:
             body=body,
         ).execute(self._client)
 
-    def add_other_article(self, page: OtherPage):
+    def add_other_article(self, page: Page):
         title = f"[{page.date}] {page.title}"
         body = page.url_as_str()
 
@@ -116,7 +115,7 @@ class PersonalStorage:
 @click.argument("summary_path")
 def main(summary_path: str) -> None:
     with open(summary_path, "r") as f:
-        page = page_fromdict(json.load(f))
+        page = Page.fromdict(json.load(f))
 
     storage = PersonalStorage()
 

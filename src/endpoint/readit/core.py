@@ -6,10 +6,7 @@ from pydantic import BaseModel
 from pydantic import Field
 from pydantic import TypeAdapter
 from pydantic import HttpUrl
-import trafilatura
-import urllib.request
 from urllib.parse import urlparse
-from urllib.parse import urlunparse
 
 
 class Summary(BaseModel):
@@ -71,21 +68,12 @@ _STRUCTURED_LLM = ChatGoogleGenerativeAI(
 _CHAIN = _PROMPT | _STRUCTURED_LLM
 
 
-def page_of_(url: str) -> OtherPage:
-    with urllib.request.urlopen(url, timeout=60) as response:
-        page_html = response.read()
+def page_of_(fetch_result: FetchResult) -> OtherPage:
+    summary = _CHAIN.invoke({"content": fetch_result.html})
 
-        page_url = urlparse(response.geturl())
-
-    if page_url.netloc == "www.linkedin.com":
-        if page_url.path.startswith("/posts/"):
-            page_url = page_url._replace(query="")
-
-    # Try to extract content using trafilatura
-    content = trafilatura.extract(page_html, with_metadata=True)
-    if not content:
-        content = page_html
-
-    summary = _CHAIN.invoke({"content": page_html})
-
-    return OtherPage(url=urlunparse(page_url), title=summary.title, date=summary.date)
+    return OtherPage(
+        url=str(fetch_result.url),
+        title=summary.title,
+        date=summary.date,
+        metadata=fetch_result.trafilatura,
+    )
