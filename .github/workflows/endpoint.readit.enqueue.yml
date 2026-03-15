@@ -32,9 +32,11 @@ jobs:
         env:
           OWNER_TOKEN: ${{ secrets.TOKEN }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          FETCH_FILE: '/tmp/fetch.json'
           SUMMARY_FILE: '/tmp/summary.json'
         run: |
-          endpoint-readit-summarize-other -o "$SUMMARY_FILE" '${{ github.event.inputs.url }}'
+          endpoint-readit-fetch -o "$FETCH_FILE" '${{ github.event.inputs.url }}'
+          endpoint-readit-summarize-other -o "$SUMMARY_FILE" "$FETCH_FILE"
           endpoint-readit-send-to-personal "$SUMMARY_FILE"
           endpoint-readit-send-to-queue-v2 "$SUMMARY_FILE"
         continue-on-error: true

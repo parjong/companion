@@ -6,9 +6,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel
 from pydantic import Field
 from pydantic import HttpUrl
-import trafilatura
 from typing import Any
-import urllib.request
 from urllib.parse import ParseResult as URL
 from urllib.parse import urlparse
 from urllib.parse import urlunparse
@@ -76,21 +74,11 @@ _STRUCTURED_LLM = ChatGoogleGenerativeAI(
 _CHAIN = _PROMPT | _STRUCTURED_LLM
 
 
-def page_of_(url: str) -> Page:
-    with urllib.request.urlopen(url, timeout=60) as response:
-        page_html = response.read()
+def summarize_fetch_result(fetch_result: FetchResult) -> Page:
+    summary = _CHAIN.invoke({"content": fetch_result.html})
 
-        page_url = urlparse(response.geturl())
-
-    if page_url.netloc == "www.linkedin.com":
-        if page_url.path.startswith("/posts/"):
-            page_url = page_url._replace(query="")
-
-    # Try to extract content using trafilatura
-    content = trafilatura.extract(page_html, with_metadata=True)
-    if not content:
-        content = page_html
-
-    summary = _CHAIN.invoke({"content": page_html})
-
-    return Page(url=page_url, title=summary.title, date=summary.date)
+    return Page(
+        url=urlparse(str(fetch_result.url)),
+        title=summary.title,
+        date=summary.date,
+    )
