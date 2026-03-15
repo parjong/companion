@@ -5,6 +5,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel
 from pydantic import Field
+from pydantic import HttpUrl
 import trafilatura
 from typing import Any
 import urllib.request
@@ -20,6 +21,12 @@ class Summary(BaseModel):
     date: str = Field(
         description="The issue or publication date as YYYY/MM/DD format (????/??/?? if unknown)"
     )
+
+
+class FetchResult(BaseModel):
+    url: HttpUrl
+    html: str
+    trafilatura: dict[str, Any]
 
 
 @dataclass
