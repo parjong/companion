@@ -74,7 +74,7 @@ _STRUCTURED_LLM = ChatGoogleGenerativeAI(
 _CHAIN = _PROMPT | _STRUCTURED_LLM
 
 
-def summarize_fetch_result(fetch_result: FetchResult) -> Page:
+def page_of_(fetch_result: FetchResult) -> Page:
     summary = _CHAIN.invoke({"content": fetch_result.html})
 
     return Page(

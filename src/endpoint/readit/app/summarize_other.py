@@ -8,7 +8,7 @@ import click
 
 from endpoint.readit.core import Page
 from endpoint.readit.core import FetchResult
-from endpoint.readit.core import summarize_fetch_result
+from endpoint.readit.core import page_of_
 
 
 logger = getLogger(__name__)
@@ -44,7 +44,7 @@ def main(output_path: str, fetch_result_path: str) -> None:
             },
         )
     else:
-        page = summarize_fetch_result(fetch_result)
+        page = page_of_(fetch_result)
 
     logger.info("Result: '%s'", page)
 
