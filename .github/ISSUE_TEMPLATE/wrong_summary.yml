@@ -1,0 +1,29 @@
+name: 😭 제목 요약이 이상해요
+description: 제목 요약이 이상할 때 제보해주세요.
+title: "😭 제목 요약이 이상해요"
+labels: ["bug"]
+body:
+  - type: input
+    id: url
+    attributes:
+      label: URL
+      description: 문제가 되는 URL을 입력해주세요.
+      placeholder: https://example.com/...
+    validations:
+      required: true
+  - type: textarea
+    id: as_is
+    attributes:
+      label: AS IS
+      description: 현재 요약 결과를 입력해주세요.
+      placeholder: <... 현재 요약 결과 ...>
+    validations:
+      required: true
+  - type: textarea
+    id: to_be
+    attributes:
+      label: TO BE
+      description: 기대하는 결과를 입력해주세요.
+      value: "TO BE FILLED"
+    validations:
+      required: true
