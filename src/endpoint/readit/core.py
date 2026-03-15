@@ -5,6 +5,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel
 from pydantic import Field
 from pydantic import TypeAdapter
+from pydantic import HttpUrl
 import trafilatura
 import urllib.request
 from urllib.parse import urlparse
@@ -18,6 +19,12 @@ class Summary(BaseModel):
     date: str = Field(
         description="The issue or publication date as YYYY/MM/DD format (????/??/?? if unknown)"
     )
+
+
+class FetchResult(BaseModel):
+    url: HttpUrl
+    html: str
+    trafilatura: dict[str, Any]
 
 
 class BasePage(BaseModel):
@@ -79,6 +86,6 @@ def page_of_(url: str) -> OtherPage:
     if not content:
         content = page_html
 
-    summary = _CHAIN.invoke({"content": content})
+    summary = _CHAIN.invoke({"content": page_html})
 
     return OtherPage(url=urlunparse(page_url), title=summary.title, date=summary.date)

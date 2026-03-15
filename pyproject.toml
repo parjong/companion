@@ -19,6 +19,7 @@ dependencies = [
 endpoint-readit-summarize-other = "endpoint.readit.app.summarize_other:main"
 endpoint-readit-send-to-personal = "endpoint.readit.app.send_to_personal:main"
 endpoint-readit-send-to-queue-v2 = "endpoint.readit.app.send_to_queue_v2:main"
+endpoint-readit-fetch = "endpoint.readit.app.fetch:main"
 
 [build-system]
 requires = ["uv_build>=0.9.3,<0.10.0"]
