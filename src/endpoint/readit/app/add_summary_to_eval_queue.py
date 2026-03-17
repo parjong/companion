@@ -16,12 +16,16 @@ logger = getLogger(__name__)
 
 
 class EvalQueue:
-    # This Project ID can be verified by running the following GraphQL query:
-    # query { organization(login: "endpoint-readit") { projectV2(number: 6) { id title } } }
+    # This Project ID can be verified by running the following GitHub CLI command:
+    # gh api graphql -f query='
+    #   query { node(id: "PVT_kwHOAOPA3c4BSAfY") { ... on ProjectV2 { number title } } }
+    # '
     PROJECT_ID = "PVT_kwHOAOPA3c4BSAfY"
 
-    # Field IDs can be verified by running the following GraphQL query:
-    # query { node(id: "PVT_kwHOAOPA3c4BSAfY") { ... on ProjectV2 { fields(first: 20) { nodes { ... on ProjectV2Field { id name } } } } } }
+    # Field IDs can be verified by running the following GitHub CLI command:
+    # gh api graphql -f query='
+    #   query { node(id: "FIELD_ID") { ... on ProjectV2Field { name project { ... on ProjectV2 { number } } } } }
+    # '
     TITLE_FIELD_ID = "PVTF_lAHOAOPA3c4BSAfYzg_qtdo"
     URL_FIELD_ID = "PVTF_lAHOAOPA3c4BSAfYzg_quM8"
 
