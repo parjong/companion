@@ -13,7 +13,6 @@ from endpoint.readit.github import UpdateTextFieldValue
 from gql.transport.requests import RequestsHTTPTransport as HTTPTransport
 
 logger = getLogger(__name__)
-logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())
 
 
 class EvalQueue:
@@ -22,17 +21,8 @@ class EvalQueue:
     TITLE_FIELD_ID = "PVTF_lAHOAOPA3c4BSAfYzg_qtdo"
     URL_FIELD_ID = "PVTF_lAHOAOPA3c4BSAfYzg_quM8"
 
-    def __init__(self):
-        github_graphql_url = os.environ["GITHUB_GRAPHQL_URL"]
-
-        owner_token = os.environ["OWNER_TOKEN"]
-
-        self._client = Client(
-            transport=HTTPTransport(
-                url=github_graphql_url,
-                headers={"Authorization": f"Bearer {owner_token}"},
-            )
-        )
+    def __init__(self, client: Client):
+        self._client = client
 
     def add(self, page: Page):
         item_id: ProjectItemID = AddProjectV2DraftIssue(
@@ -57,12 +47,24 @@ class EvalQueue:
 @click.command()
 @click.argument("summary_path")
 def main(summary_path: str) -> None:
+    logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())
+
+    github_graphql_url = os.environ["GITHUB_GRAPHQL_URL"]
+    owner_token = os.environ["OWNER_TOKEN"]
+
+    client = Client(
+        transport=HTTPTransport(
+            url=github_graphql_url,
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+    )
+
     with open(summary_path, "r") as f:
         page = Page.fromdict(json.load(f))
 
     logger.info("page = '%s'", page)
 
-    queue = EvalQueue()
+    queue = EvalQueue(client)
 
     queue.add(page)
 
