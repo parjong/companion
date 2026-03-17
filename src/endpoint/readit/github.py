@@ -8,6 +8,7 @@ ProjectItemID = NewType("ProjectItemID", str)
 
 
 class AddProjectV2DraftIssue:
+    # https://docs.github.com/en/graphql/reference/mutations#addprojectv2draftissue
     QUERY = gql("""
     mutation ($projectId: ID!, $title: String!, $body: String!) {
       op: addProjectV2DraftIssue(input: {
@@ -32,6 +33,7 @@ class AddProjectV2DraftIssue:
 
 
 class UpdateTextFieldValue:
+    # https://docs.github.com/en/graphql/reference/mutations#updateprojectv2itemfieldvalue
     QUERY = gql("""
     mutation ($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: String!) {
       updateProjectV2ItemFieldValue(input: {
@@ -59,6 +61,7 @@ class UpdateTextFieldValue:
 
 
 class UpdateDateFieldValue:
+    # https://docs.github.com/en/graphql/reference/mutations#updateprojectv2itemfieldvalue
     QUERY = gql("""
     mutation ($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: Date!) {
       updateProjectV2ItemFieldValue(input: {
