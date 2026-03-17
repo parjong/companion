@@ -1,6 +1,9 @@
 import click
 from gql import Client
 
+from datetime import datetime
+from datetime import timedelta
+from datetime import timezone
 import json
 from logging import getLogger
 import os
@@ -9,6 +12,7 @@ from endpoint.readit.core import Page
 from endpoint.readit.github import ProjectItemID
 from endpoint.readit.github import AddProjectV2DraftIssue
 from endpoint.readit.github import UpdateTextFieldValue
+from endpoint.readit.github import UpdateDateFieldValue
 
 from gql.transport.requests import RequestsHTTPTransport as HTTPTransport
 
@@ -28,6 +32,7 @@ class EvalQueue:
     # '
     TITLE_FIELD_ID = "PVTF_lAHOAOPA3c4BSAfYzg_qtdo"
     URL_FIELD_ID = "PVTF_lAHOAOPA3c4BSAfYzg_quM8"
+    ADDED_AT_FIELD_ID = "PVTF_lAHOAOPA3c4BSAfYzg_subk"
 
     def __init__(self, client: Client):
         self._client = client
@@ -49,6 +54,16 @@ class EvalQueue:
             itemId=item_id,
             fieldId=self.URL_FIELD_ID,
             value=page.url_as_str(),
+        ).execute(self._client)
+
+        kst = timezone(timedelta(hours=9))
+        now_kst = datetime.now(kst).strftime("%Y-%m-%d")
+
+        UpdateDateFieldValue(
+            projectId=self.PROJECT_ID,
+            itemId=item_id,
+            fieldId=self.ADDED_AT_FIELD_ID,
+            value=now_kst,
         ).execute(self._client)
 
 

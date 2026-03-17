@@ -56,3 +56,30 @@ class UpdateTextFieldValue:
     def execute(self, client) -> None:
         result = client.execute(self.QUERY, variable_values=self._values)
         logger.debug(result)
+
+
+class UpdateDateFieldValue:
+    QUERY = gql("""
+    mutation ($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: Date!) {
+      updateProjectV2ItemFieldValue(input: {
+        projectId: $projectId,
+        itemId: $itemId,
+        fieldId: $fieldId,
+        value: { date: $value }
+      }) { item: projectV2Item { id } }
+    }
+    """)
+
+    def __init__(
+        self, *, projectId: str, itemId: ProjectItemID, fieldId: str, value: str
+    ):
+        self._values = {
+            "projectId": projectId,
+            "itemId": str(itemId),
+            "fieldId": fieldId,
+            "value": value,
+        }
+
+    def execute(self, client) -> None:
+        result = client.execute(self.QUERY, variable_values=self._values)
+        logger.debug(result)
