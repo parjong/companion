@@ -1,10 +1,8 @@
 from gql import gql
 from typing import NewType
 from logging import getLogger
-import os
 
 logger = getLogger(__name__)
-logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())
 
 ProjectItemID = NewType("ProjectItemID", str)
 
