@@ -52,9 +52,8 @@ def main(fetch_result_path: str) -> None:
     if url_to_check in urls_in_queue:
         print("already in queue")
         sys.exit(1)
-    else:
-        print("not in queue")
-        sys.exit(0)
+
+    print("not in queue")
 
 
 if __name__ == "__main__":
