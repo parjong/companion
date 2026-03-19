@@ -60,6 +60,71 @@ class UpdateTextFieldValue:
         logger.debug(result)
 
 
+class ListProjectV2ItemFieldValues:
+    # https://docs.github.com/en/graphql/reference/objects#projectv2itemfieldvalueconnection
+    QUERY = gql("""
+    query ($projectId: ID!, $after: String) {
+      node(id: $projectId) {
+        ... on ProjectV2 {
+          items(first: 100, after: $after) {
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+            nodes {
+              fieldValues(first: 20) {
+                nodes {
+                  ... on ProjectV2ItemFieldTextValue {
+                    text
+                    field {
+                      ... on ProjectV2FieldCommon {
+                        id
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    """)
+
+    def __init__(self, *, projectId: str, fieldId: str):
+        self._projectId = projectId
+        self._fieldId = fieldId
+
+    def execute(self, client) -> list[str]:
+        values = []
+        after = None
+        has_next_page = True
+
+        while has_next_page:
+            result = client.execute(
+                self.QUERY,
+                variable_values={
+                    "projectId": self._projectId,
+                    "after": after,
+                },
+            )
+            items_data = result["node"]["items"]
+            for item in items_data["nodes"]:
+                for field_value in item["fieldValues"]["nodes"]:
+                    if not field_value:
+                        continue
+                    if field_value.get("field", {}).get("id") == self._fieldId:
+                        text = field_value.get("text")
+                        if text is not None:
+                            values.append(text)
+
+            page_info = items_data["pageInfo"]
+            has_next_page = page_info["hasNextPage"]
+            after = page_info["endCursor"]
+
+        return values
+
+
 class UpdateDateFieldValue:
     # https://docs.github.com/en/graphql/reference/mutations#updateprojectv2itemfieldvalue
     QUERY = gql("""
