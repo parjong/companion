@@ -21,6 +21,7 @@ endpoint-readit-send-to-personal = "endpoint.readit.app.send_to_personal:main"
 endpoint-readit-send-to-queue-v2 = "endpoint.readit.app.send_to_queue_v2:main"
 endpoint-readit-add-summary-to-eval-queue = "endpoint.readit.app.add_summary_to_eval_queue:main"
 endpoint-readit-fetch = "endpoint.readit.app.fetch:main"
+endpoint-readit-ensure-URL-not-in-eval-queue = "endpoint.readit.app.ensure_url_not_in_eval_queue:main"
 
 [build-system]
 requires = ["uv_build>=0.9.3,<0.10.0"]
