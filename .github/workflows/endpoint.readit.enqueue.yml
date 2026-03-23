@@ -32,15 +32,17 @@ jobs:
         env:
           OWNER_TOKEN: ${{ secrets.TOKEN }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_GRAPHQL_URL: "https://api.github.com/graphql"
+          INPUT_URL: ${{ github.event.inputs.url }}
           FETCH_FILE: '/tmp/fetch.json'
           SUMMARY_FILE: '/tmp/summary.json'
         run: |
-          endpoint-readit-fetch -o "$FETCH_FILE" '${{ github.event.inputs.url }}'
+          endpoint-readit-fetch -o "$FETCH_FILE" "$INPUT_URL"
+          endpoint-readit-ensure-URL-not-in-eval-queue "$FETCH_FILE"
           endpoint-readit-summarize-other -o "$SUMMARY_FILE" "$FETCH_FILE"
+          endpoint-readit-add-summary-to-eval-queue "$SUMMARY_FILE"
           endpoint-readit-send-to-personal "$SUMMARY_FILE"
           endpoint-readit-send-to-queue-v2 "$SUMMARY_FILE"
-        continue-on-error: true
-        # 'continue-on-error' ensures that a failure from one command not to affect the others
     # steps/ END
   # run/ END
 # jobs/ END
