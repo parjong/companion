@@ -39,9 +39,7 @@ def main(output_path: str, url: str) -> None:
 
     # Extract content using trafilatura
     # output_format="json" with with_metadata=True gives a JSON string with metadata
-    trafilatura_json_str = trafilatura.extract(
-        page_html_bytes, output_format="json", with_metadata=True
-    )
+    trafilatura_json_str = trafilatura.extract(page_html_bytes, output_format="json", with_metadata=True)
     if trafilatura_json_str:
         trafilatura_data = json.loads(trafilatura_json_str)
     else:
@@ -49,7 +47,9 @@ def main(output_path: str, url: str) -> None:
 
     # Prepare final output using Pydantic
     result = FetchResult(
-        url=normalized_url, html=page_html, trafilatura=trafilatura_data
+        url=normalized_url,
+        html=page_html,
+        trafilatura=trafilatura_data
     )
 
     # Write to output file
@@ -57,7 +57,6 @@ def main(output_path: str, url: str) -> None:
         f.write(result.model_dump_json(indent=2))
 
     logger.info("Saved raw data to '%s'", output_path)
-
 
 if __name__ == "__main__":
     main()
