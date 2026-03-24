@@ -14,9 +14,15 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
+    env:
+      OWNER_TOKEN: ${{ secrets.TOKEN }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      INPUT_URL: ${{ github.event.inputs.url }}
+      FETCH_FILE: '/tmp/fetch.json'
+      SUMMARY_FILE: '/tmp/summary.json'
     steps:
       - name: 'Show input url'
-        run: echo '${{ github.event.inputs.url }}'
+        run: echo "$INPUT_URL"
 
       - uses: actions/checkout@v6
 
@@ -28,19 +34,23 @@ jobs:
       - name: 'Install server'
         run: uv tool install --force ./
 
-      - name: 'Enqueue'
-        env:
-          OWNER_TOKEN: ${{ secrets.TOKEN }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          FETCH_FILE: '/tmp/fetch.json'
-          SUMMARY_FILE: '/tmp/summary.json'
-        run: |
-          endpoint-readit-fetch -o "$FETCH_FILE" '${{ github.event.inputs.url }}'
-          endpoint-readit-summarize-other -o "$SUMMARY_FILE" "$FETCH_FILE"
-          endpoint-readit-send-to-personal "$SUMMARY_FILE"
-          endpoint-readit-send-to-queue-v2 "$SUMMARY_FILE"
-        continue-on-error: true
-        # 'continue-on-error' ensures that a failure from one command not to affect the others
+      - name: 'Fetch'
+        run: endpoint-readit-fetch -o "$FETCH_FILE" "$INPUT_URL"
+
+      - name: 'Check duplicate'
+        run: endpoint-readit-ensure-URL-not-in-eval-queue "$FETCH_FILE"
+
+      - name: 'Summarize'
+        run: endpoint-readit-summarize-other -o "$SUMMARY_FILE" "$FETCH_FILE"
+
+      - name: 'Add to eval queue'
+        run: endpoint-readit-add-summary-to-eval-queue "$SUMMARY_FILE"
+
+      - name: 'Send to personal'
+        run: endpoint-readit-send-to-personal "$SUMMARY_FILE"
+
+      - name: 'Send to primary queue'
+        run: endpoint-readit-send-to-queue-v2 "$SUMMARY_FILE"
     # steps/ END
   # run/ END
 # jobs/ END
