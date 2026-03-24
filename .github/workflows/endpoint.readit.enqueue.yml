@@ -14,9 +14,11 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
+    env:
+      INPUT_URL: ${{ github.event.inputs.url }}
     steps:
       - name: 'Show input url'
-        run: echo '${{ github.event.inputs.url }}'
+        run: echo "$INPUT_URL"
 
       - uses: actions/checkout@v6
 
@@ -35,7 +37,7 @@ jobs:
           FETCH_FILE: '/tmp/fetch.json'
           SUMMARY_FILE: '/tmp/summary.json'
         run: |
-          endpoint-readit-fetch -o "$FETCH_FILE" '${{ github.event.inputs.url }}'
+          endpoint-readit-fetch -o "$FETCH_FILE" "$INPUT_URL"
           endpoint-readit-summarize-other -o "$SUMMARY_FILE" "$FETCH_FILE"
           endpoint-readit-send-to-personal "$SUMMARY_FILE"
           endpoint-readit-send-to-queue-v2 "$SUMMARY_FILE"
