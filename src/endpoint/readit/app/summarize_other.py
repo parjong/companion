@@ -18,6 +18,18 @@ logger = getLogger(__name__)
 logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())
 
 
+_PROMPT = ChatPromptTemplate.from_template("""
+    Analyze the following content from a webpage and extract two pieces of information:
+    1. The concise main title of the article or page.
+    2. The issue or publication date as YYYY/MM/DD format (if available).
+       - If not available, state "????/??/??".
+
+    Format your answer as a JSON object with keys "date" and "title".
+
+    Content: {content}
+    """)
+
+
 class Summary(BaseModel):
     title: str = Field(
         description="The title of concise main title of the article or page"
@@ -27,8 +39,14 @@ class Summary(BaseModel):
     )
 
 
-def page_of_(fetch_result: FetchResult, chain) -> Page:
-    summary = chain.invoke({"content": fetch_result.html})
+_STRUCTURED_LLM = ChatGoogleGenerativeAI(
+    model="gemini-2.5-flash"
+).with_structured_output(Summary)
+_CHAIN = _PROMPT | _STRUCTURED_LLM
+
+
+def page_of_(fetch_result: FetchResult) -> Page:
+    summary = _CHAIN.invoke({"content": fetch_result.html})
 
     return Page(
         url=urlparse(str(fetch_result.url)),
@@ -66,22 +84,7 @@ def main(output_path: str, fetch_result_path: str) -> None:
             },
         )
     else:
-        prompt = ChatPromptTemplate.from_template("""
-            Analyze the following content from a webpage and extract two pieces of information:
-            1. The concise main title of the article or page.
-            2. The issue or publication date as YYYY/MM/DD format (if available).
-               - If not available, state "????/??/??".
-
-            Format your answer as a JSON object with keys "date" and "title".
-
-            Content: {content}
-            """)
-        structured_llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash"
-        ).with_structured_output(Summary)
-        chain = prompt | structured_llm
-
-        page = page_of_(fetch_result, chain)
+        page = page_of_(fetch_result)
 
     logger.info("Result: '%s'", page)
 
