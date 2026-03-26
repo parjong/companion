@@ -18,6 +18,15 @@ logger = getLogger(__name__)
 logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())
 
 
+class Summary(BaseModel):
+    title: str = Field(
+        description="The title of concise main title of the article or page"
+    )
+    date: str = Field(
+        description="The issue or publication date as YYYY/MM/DD format (????/??/?? if unknown)"
+    )
+
+
 _PROMPT = ChatPromptTemplate.from_template("""
     Analyze the following content from a webpage and extract two pieces of information:
     1. The concise main title of the article or page.
@@ -28,17 +37,6 @@ _PROMPT = ChatPromptTemplate.from_template("""
 
     Content: {content}
     """)
-
-
-class Summary(BaseModel):
-    title: str = Field(
-        description="The title of concise main title of the article or page"
-    )
-    date: str = Field(
-        description="The issue or publication date as YYYY/MM/DD format (????/??/?? if unknown)"
-    )
-
-
 _STRUCTURED_LLM = ChatGoogleGenerativeAI(
     model="gemini-2.5-flash"
 ).with_structured_output(Summary)
