@@ -8,7 +8,9 @@ import json
 from logging import getLogger
 import os
 
+from endpoint.readit.core import parse_page
 from endpoint.readit.core import Page
+from endpoint.readit.core import ArxivPage
 
 
 logger = getLogger(__name__)
@@ -71,7 +73,8 @@ class PersonalStorage:
             raise
 
     def _add_known_article_if_possible(self, page: Page) -> bool:
-        handler = self._handlers.get(page.kind)
+        kind = getattr(page, "kind", "other")
+        handler = self._handlers.get(kind)
         if not handler:
             return False
 
@@ -84,11 +87,11 @@ class PersonalStorage:
             logger.info("Falling back to add_other_article")
             return False
 
-    def add_arXiv_article(self, page: Page):
-        summary = page.metadata.get("summary", "")
+    def add_arXiv_article(self, page: ArxivPage):
+        summary = page.abstract
         lines = [page.url_as_str(), "", f"> {summary}"]
 
-        year = page.metadata.get("year", "????")
+        year = page.date
         title = f"[{year}] {page.title}"
         body = "\n".join(lines)
 
@@ -115,10 +118,14 @@ class PersonalStorage:
 @click.argument("summary_path")
 def main(summary_path: str) -> None:
     with open(summary_path, "r") as f:
-        page = Page.fromdict(json.load(f))
+        page = parse_page(json.load(f))
 
     storage = PersonalStorage()
 
     storage.add_article(page)
 
     logger.info("Done")
+
+
+if __name__ == "__main__":
+    main()

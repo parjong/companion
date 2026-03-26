@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 
 import click
 
-from endpoint.readit.core import Page
+from endpoint.readit.core import ArxivPage
 from endpoint.readit.core import FetchResult
 from endpoint.readit.core import page_of_
 
@@ -33,11 +33,12 @@ def main(output_path: str, fetch_result_path: str) -> None:
         results = list(search.results())
         paper = results[0]
 
-        page = Page(
-            url=parsed_url,
+        page = ArxivPage(
+            url=url,
             title=paper.title,
-            date=paper.published.strftime("%Y/%m/%d"),
-            kind="arxiv",
+            date=str(paper.published.year),
+            paper_id=arxiv_id,
+            abstract=paper.summary,
             metadata={
                 "summary": paper.summary,
                 "year": str(paper.published.year),

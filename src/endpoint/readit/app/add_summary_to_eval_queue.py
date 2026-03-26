@@ -8,6 +8,7 @@ import json
 from logging import getLogger
 import os
 
+from endpoint.readit.core import parse_page
 from endpoint.readit.core import Page
 from endpoint.readit.github import ProjectItemID
 from endpoint.readit.github import AddProjectV2DraftIssue
@@ -83,7 +84,7 @@ def main(summary_path: str) -> None:
     )
 
     with open(summary_path, "r") as f:
-        page = Page.fromdict(json.load(f))
+        page = parse_page(json.load(f))
 
     logger.info("page = '%s'", page)
 

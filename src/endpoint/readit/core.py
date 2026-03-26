@@ -1,15 +1,11 @@
-from dataclasses import dataclass
-from dataclasses import field
-
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel
 from pydantic import Field
 from pydantic import HttpUrl
-from typing import Any
-from urllib.parse import ParseResult as URL
-from urllib.parse import urlparse
-from urllib.parse import urlunparse
+from pydantic import TypeAdapter
+from pydantic import BeforeValidator
+from typing import Any, Literal, Annotated, Union
 
 
 class Summary(BaseModel):
@@ -27,35 +23,44 @@ class FetchResult(BaseModel):
     trafilatura: dict[str, Any]
 
 
-@dataclass
-class Page:
-    url: URL
+class BasePage(BaseModel):
+    url: HttpUrl
     title: str
-    date: str
-    kind: str = "other"
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
     def url_as_str(self) -> str:
-        return urlunparse(self.url)
+        return str(self.url)
 
-    def asdict(self):
-        return {
-            "url": urlunparse(self.url),
-            "title": self.title,
-            "date": self.date,
-            "kind": self.kind,
-            "metadata": self.metadata,
-        }
+    def asdict(self) -> dict[str, Any]:
+        return self.model_dump(mode="json")
 
-    @classmethod
-    def fromdict(cls, d):
-        return cls(
-            url=urlparse(d["url"]),
-            title=d["title"],
-            date=d["date"],
-            kind=d.get("kind", "other"),
-            metadata=d.get("metadata", {}),
-        )
+
+class ArxivPage(BasePage):
+    kind: Literal["arxiv"] = "arxiv"
+    paper_id: str
+    abstract: str
+    date: str = Field(pattern=r"^\d{4}$")
+
+
+class OtherPage(BasePage):
+    kind: Literal["other"] = "other"
+    date: str = Field(pattern=r"^(\d{4}/\d{2}/\d{2}|\?\?\?\?/\?\?/\?\?)$")
+
+
+Page = Annotated[Union[ArxivPage, OtherPage], Field(discriminator="kind")]
+
+
+def _default_kind_to_other(v: Any) -> Any:
+    if isinstance(v, dict) and "kind" not in v:
+        return {**v, "kind": "other"}
+    return v
+
+
+PageAdapter = TypeAdapter(Annotated[Page, BeforeValidator(_default_kind_to_other)])
+
+
+def parse_page(data: dict[str, Any]) -> Page:
+    return PageAdapter.validate_python(data)
 
 
 _PROMPT = ChatPromptTemplate.from_template("""
@@ -74,11 +79,11 @@ _STRUCTURED_LLM = ChatGoogleGenerativeAI(
 _CHAIN = _PROMPT | _STRUCTURED_LLM
 
 
-def page_of_(fetch_result: FetchResult) -> Page:
+def page_of_(fetch_result: FetchResult) -> OtherPage:
     summary = _CHAIN.invoke({"content": fetch_result.html})
 
-    return Page(
-        url=urlparse(str(fetch_result.url)),
+    return OtherPage(
+        url=fetch_result.url,
         title=summary.title,
         date=summary.date,
     )
