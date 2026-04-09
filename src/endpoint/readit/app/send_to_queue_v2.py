@@ -65,10 +65,9 @@ class UpdateTextFieldValue:
             "value": value,
         }
 
-    def execute(self, client) -> ProjectItemID:
+    def execute(self, client) -> None:
         result = client.execute(self.QUERY, variable_values=self._values)
         logger.debug(result)
-        pass
 
 
 class Queue:

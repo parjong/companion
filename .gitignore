@@ -6,6 +6,3 @@
 
 # Reserved for local automation (across the whole repository)
 Makefile
-
-__pycache__/
-*.pyc

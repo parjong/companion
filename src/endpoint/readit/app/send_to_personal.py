@@ -40,7 +40,6 @@ title: $title,
     def execute(self, client):
         result = client.execute(self.QUERY, variable_values=self._values)
         logger.debug(result)
-        pass
 
 
 class PersonalStorage:
