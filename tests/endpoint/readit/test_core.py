@@ -9,7 +9,7 @@ def test_page_fromdict_other():
         "title": "Example Title",
         "date": "2026/04/10",
         "kind": "other",
-        "metadata": {"some": "value"},
+        "metadata": {"key_sentences": ["First sentence.", "Second sentence."]},
     }
 
     page = Page.fromdict(payload)
@@ -27,14 +27,14 @@ def test_page_fromdict_other():
 def test_page_fromdict_arxiv():
     """Test parsing an 'arxiv' Page.
     Notes from Issue #28: date format should be YYYY, it can't be UNKNOWN.
-    We also expect paper_id and abstract around metadata for now.
+    We also expect summary and year in metadata.
     """
     payload = {
         "url": "https://arxiv.org/abs/2602.04118",
         "title": "Some Paper Title",
         "date": "2026",
         "kind": "arxiv",
-        "metadata": {"paper_id": "2602.04118", "abstract": "This is a great paper."},
+        "metadata": {"summary": "This is a great paper.", "year": "2026"},
     }
 
     page = Page.fromdict(payload)
@@ -44,7 +44,8 @@ def test_page_fromdict_arxiv():
     assert page.date == "2026"
     assert page.url_as_str() == "https://arxiv.org/abs/2602.04118"
     assert page.asdict() == payload
-    assert page.metadata["paper_id"] == "2602.04118"
+    assert page.metadata["summary"] == "This is a great paper."
+    assert page.metadata["year"] == "2026"
 
 
 def test_page_direct_instantiation():
