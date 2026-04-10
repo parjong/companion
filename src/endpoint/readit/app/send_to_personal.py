@@ -138,7 +138,9 @@ def main(summary_path: str, dry_run: bool) -> None:
         if dry_run:
             logger.info("--- DRY RUN MODE ENABLED (Side-effects suppressed) ---")
             stack.enter_context(
-                patch.object(CreateDiscussion, "execute", mock_create_discussion_execute)
+                patch.object(
+                    CreateDiscussion, "execute", mock_create_discussion_execute
+                )
             )
 
         storage.add_article(page)

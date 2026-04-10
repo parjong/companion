@@ -144,10 +144,14 @@ def main(summary_path: str, dry_run: bool) -> None:
         if dry_run:
             logger.info("--- DRY RUN MODE ENABLED (Side-effects suppressed) ---")
             stack.enter_context(
-                patch.object(AddProjectV2DraftIssue, "execute", mock_add_project_v2_execute)
+                patch.object(
+                    AddProjectV2DraftIssue, "execute", mock_add_project_v2_execute
+                )
             )
             stack.enter_context(
-                patch.object(UpdateTextFieldValue, "execute", mock_update_text_field_execute)
+                patch.object(
+                    UpdateTextFieldValue, "execute", mock_update_text_field_execute
+                )
             )
 
         queue.add(page)
