@@ -9,10 +9,10 @@ from logging import getLogger
 import os
 from typing import NewType
 
-from endpoint.readit.core import Page
-
-
+from contextlib import ExitStack
 from unittest.mock import patch
+
+from endpoint.readit.core import Page
 
 logger = getLogger(__name__)
 logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())
@@ -140,16 +140,16 @@ def main(summary_path: str, dry_run: bool) -> None:
 
     queue = Queue()
 
-    if dry_run:
-        logger.info("--- DRY RUN MODE ENABLED (Side-effects suppressed) ---")
-        with patch.object(
-            AddProjectV2DraftIssue, "execute", mock_add_project_v2_execute
-        ):
-            with patch.object(
-                UpdateTextFieldValue, "execute", mock_update_text_field_execute
-            ):
-                queue.add(page)
-    else:
+    with ExitStack() as stack:
+        if dry_run:
+            logger.info("--- DRY RUN MODE ENABLED (Side-effects suppressed) ---")
+            stack.enter_context(
+                patch.object(AddProjectV2DraftIssue, "execute", mock_add_project_v2_execute)
+            )
+            stack.enter_context(
+                patch.object(UpdateTextFieldValue, "execute", mock_update_text_field_execute)
+            )
+
         queue.add(page)
 
     logger.info("Done")

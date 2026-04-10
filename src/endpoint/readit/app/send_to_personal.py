@@ -8,10 +8,10 @@ import json
 from logging import getLogger
 import os
 
-from endpoint.readit.core import Page
-
-
+from contextlib import ExitStack
 from unittest.mock import patch
+
+from endpoint.readit.core import Page
 
 logger = getLogger(__name__)
 logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())
@@ -134,11 +134,13 @@ def main(summary_path: str, dry_run: bool) -> None:
 
     storage = PersonalStorage()
 
-    if dry_run:
-        logger.info("--- DRY RUN MODE ENABLED (Side-effects suppressed) ---")
-        with patch.object(CreateDiscussion, "execute", mock_create_discussion_execute):
-            storage.add_article(page)
-    else:
+    with ExitStack() as stack:
+        if dry_run:
+            logger.info("--- DRY RUN MODE ENABLED (Side-effects suppressed) ---")
+            stack.enter_context(
+                patch.object(CreateDiscussion, "execute", mock_create_discussion_execute)
+            )
+
         storage.add_article(page)
 
     logger.info("Done")
