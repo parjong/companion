@@ -17,6 +17,9 @@ jobs:
           version: 0.9.22 # Latest as of 2026 Jan 07
         # with/ END
 
+      # TODO: Currently we use `uvx` directly, but in the future we should install pre-commit via `uv tool` and run it in 2 stages:
+      # 1. `pre-commit run` (default, only for changed files)
+      # 2. `pre-commit run --hook-stage manual` (for global hooks like tests)
       - run: uvx --from pre-commit==4.5.1 pre-commit run --all-files
     # steps/ END
   # run/ END
