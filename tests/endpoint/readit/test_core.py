@@ -1,4 +1,3 @@
-
 from urllib.parse import urlparse
 from endpoint.readit.core import Page
 
@@ -10,11 +9,11 @@ def test_page_fromdict_other():
         "title": "Example Title",
         "date": "2026/04/10",
         "kind": "other",
-        "metadata": {"some": "value"}
+        "metadata": {"some": "value"},
     }
-    
+
     page = Page.fromdict(payload)
-    
+
     assert page.kind == "other"
     assert page.title == "Example Title"
     assert page.date == "2026/04/10"
@@ -26,7 +25,7 @@ def test_page_fromdict_other():
 
 
 def test_page_fromdict_arxiv():
-    """Test parsing an 'arxiv' Page. 
+    """Test parsing an 'arxiv' Page.
     Notes from Issue #28: date format should be YYYY, it can't be UNKNOWN.
     We also expect paper_id and abstract around metadata for now.
     """
@@ -35,14 +34,11 @@ def test_page_fromdict_arxiv():
         "title": "Some Paper Title",
         "date": "2026",
         "kind": "arxiv",
-        "metadata": {
-            "paper_id": "2602.04118",
-            "abstract": "This is a great paper."
-        }
+        "metadata": {"paper_id": "2602.04118", "abstract": "This is a great paper."},
     }
-    
+
     page = Page.fromdict(payload)
-    
+
     assert page.kind == "arxiv"
     assert page.title == "Some Paper Title"
     assert page.date == "2026"
@@ -58,7 +54,7 @@ def test_page_direct_instantiation():
         title="GitHub",
         date="UNKNOWN",
         kind="other",
-        metadata={}
+        metadata={},
     )
     assert page.kind == "other"
     assert page.date == "UNKNOWN"
