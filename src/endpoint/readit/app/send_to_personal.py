@@ -11,8 +11,15 @@ import os
 from endpoint.readit.core import Page
 
 
+from unittest.mock import patch
+
 logger = getLogger(__name__)
 logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())
+
+
+def mock_create_discussion_execute(self, client) -> None:
+    title = self._values["title"]
+    logger.info(f"  [Dry Run] Would create Discussion: '{title}'")
 
 
 class CreateDiscussion:
@@ -112,13 +119,26 @@ class PersonalStorage:
 
 
 @click.command()
+@click.option(
+    "--dry-run/--no-dry-run",
+    default=not os.environ.get("CI"),
+    help="Default is True unless CI environment variable is set.",
+)
 @click.argument("summary_path")
-def main(summary_path: str) -> None:
+def main(summary_path: str, dry_run: bool) -> None:
+    import logging
+
+    logging.basicConfig(level=logging.INFO)
     with open(summary_path, "r") as f:
         page = Page.fromdict(json.load(f))
 
     storage = PersonalStorage()
 
-    storage.add_article(page)
+    if dry_run:
+        logger.info("--- DRY RUN MODE ENABLED (Side-effects suppressed) ---")
+        with patch.object(CreateDiscussion, "execute", mock_create_discussion_execute):
+            storage.add_article(page)
+    else:
+        storage.add_article(page)
 
     logger.info("Done")
