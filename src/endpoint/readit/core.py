@@ -19,6 +19,14 @@ class FetchResult(BaseModel):
     trafilatura: dict[str, Any]
 
 
+class OtherPageModel(BaseModel):
+    kind: Literal["other"] = "other"
+    url: str
+    title: str
+    date: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 class ArxivPageModel(BaseModel):
     kind: Literal["arxiv"] = "arxiv"
     url: str
@@ -41,14 +49,6 @@ class ArxivPageModel(BaseModel):
         if "abstract" not in v:
             raise ValueError("Arxiv metadata requires 'abstract'.")
         return v
-
-
-class OtherPageModel(BaseModel):
-    kind: Literal["other"] = "other"
-    url: str
-    title: str
-    date: str
-    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 PageModel = Annotated[
