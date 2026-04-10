@@ -29,6 +29,14 @@ repos:
         language: system
         entry: uv run ruff check
       # ruff-check/ END
+
+      - id: pytest
+        name: 'Run pytest'
+        types: [python]
+        language: system
+        entry: uv run pytest
+        pass_filenames: false
+      # pytest/ END
     # hooks/ END
   # local/ END
 

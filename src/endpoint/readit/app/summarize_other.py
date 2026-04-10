@@ -37,8 +37,8 @@ _PROMPT = ChatPromptTemplate.from_template("""
     3. **Key Sentences**: Identify up to 3 most important sentences that represent the core message of the content.
 
     **Critical Constraints for Key Sentences:**
-    - Each sentence MUST be extracted EXACTLY as it appears in the original content. 
-    - Do NOT summarize or rephrase the sentences. 
+    - Each sentence MUST be extracted EXACTLY as it appears in the original content.
+    - Do NOT summarize or rephrase the sentences.
     - Provide them as a list of strings.
 
     Format your answer as a JSON object with keys "date", "title", and "key_sentences".
