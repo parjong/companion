@@ -20,18 +20,19 @@ class FetchResult(BaseModel):
 
 
 class OtherPageModel(BaseModel):
-    kind: Literal["other"] = "other"
     url: str
     title: str
     date: str
+    kind: Literal["other"] = "other"
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+# TODO: This class was newly added for Issue #28 to separate Arxiv specialized logic
 class ArxivPageModel(BaseModel):
-    kind: Literal["arxiv"] = "arxiv"
     url: str
     title: str
     date: str
+    kind: Literal["arxiv"] = "arxiv"
     metadata: dict[str, Any]
 
     @field_validator("date")
