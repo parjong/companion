@@ -17,7 +17,7 @@ jobs:
           version: 0.9.22 # Latest as of 2026 Jan 07
         # with/ END
 
-      - run: uvx --from pre-commit==4.5.1 pre-commit run
+      - run: uvx --from pre-commit==4.5.1 pre-commit run --all-files
     # steps/ END
   # run/ END
 # jobs/ END
