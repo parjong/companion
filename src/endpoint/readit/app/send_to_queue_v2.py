@@ -9,13 +9,27 @@ from logging import getLogger
 import os
 from typing import NewType
 
-from endpoint.readit.core import Page
+from contextlib import ExitStack
+from unittest.mock import patch
 
+from endpoint.readit.core import Page
 
 logger = getLogger(__name__)
 logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())
 
 ProjectItemID = NewType("ProjectItemID", str)
+
+
+def mock_add_project_v2_execute(self, client) -> ProjectItemID:
+    title = self._values["title"]
+    logger.info(f"  [Dry Run] Would add Project V2 Draft Issue: '{title}'")
+    return ProjectItemID("DUMMY_ITEM_ID")
+
+
+def mock_update_text_field_execute(self, client) -> None:
+    field_id = self._values["fieldId"]
+    value = self._values["value"]
+    logger.info(f"  [Dry Run] Would update field '{field_id}' with value: '{value}'")
 
 
 class AddProjectV2DraftIssue:
@@ -109,8 +123,16 @@ class Queue:
 
 
 @click.command()
+@click.option(
+    "--dry-run/--no-dry-run",
+    default=not os.environ.get("CI"),
+    help="Default is True unless CI environment variable is set.",
+)
 @click.argument("summary_path")
-def main(summary_path: str) -> None:
+def main(summary_path: str, dry_run: bool) -> None:
+    import logging
+
+    logging.basicConfig(level=logging.INFO)
     with open(summary_path, "r") as f:
         page = Page.fromdict(json.load(f))
 
@@ -118,6 +140,20 @@ def main(summary_path: str) -> None:
 
     queue = Queue()
 
-    queue.add(page)
+    with ExitStack() as stack:
+        if dry_run:
+            logger.info("--- DRY RUN MODE ENABLED (Side-effects suppressed) ---")
+            stack.enter_context(
+                patch.object(
+                    AddProjectV2DraftIssue, "execute", mock_add_project_v2_execute
+                )
+            )
+            stack.enter_context(
+                patch.object(
+                    UpdateTextFieldValue, "execute", mock_update_text_field_execute
+                )
+            )
+
+        queue.add(page)
 
     logger.info("Done")
