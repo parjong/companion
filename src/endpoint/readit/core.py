@@ -19,24 +19,30 @@ class FetchResult(BaseModel):
     trafilatura: dict[str, Any]
 
 
+class OtherMetadata(BaseModel):
+    key_sentences: list[str] = Field(default_factory=list)
+
+
 class OtherPageModel(BaseModel):
     url: str
     title: str
     date: str
     kind: Literal["other"] = "other"
-    metadata: dict[str, Any] = Field(default_factory=dict)
+    metadata: OtherMetadata = Field(default_factory=OtherMetadata)
 
 
-# TODO: This class was newly added for Issue #28 to separate Arxiv specialized logic
+class ArxivMetadata(BaseModel):
+    summary: str
+    year: str
+
+
 class ArxivPageModel(BaseModel):
     url: str
     title: str
     date: str
     kind: Literal["arxiv"] = "arxiv"
-    metadata: dict[str, Any]
+    metadata: ArxivMetadata
 
-    # TODO: In the next phase, summarize_other.py will be updated to provide strict metadata (paper_id, abstract, etc.).
-    # Once fixed, we can re-enable strict validation here (Option C).
     @field_validator("date")
     @classmethod
     def validate_date(cls, v: str) -> str:
@@ -97,6 +103,9 @@ class Page:
 
     @property
     def metadata(self) -> dict[str, Any]:
+        """Returns metadata as a dictionary for backward compatibility."""
+        if isinstance(self._inner.metadata, BaseModel):
+            return self._inner.metadata.model_dump()
         return self._inner.metadata
 
     def url_as_str(self) -> str:
@@ -112,5 +121,5 @@ class Page:
             title=d["title"],
             date=d["date"],
             kind=d.get("kind", "other"),
-            metadata=d.get("metadata", {}),
+            metadata=d.get("metadata"),
         )
