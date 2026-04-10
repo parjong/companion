@@ -35,20 +35,17 @@ class ArxivPageModel(BaseModel):
     kind: Literal["arxiv"] = "arxiv"
     metadata: dict[str, Any]
 
+    # TODO: In the next phase, summarize_other.py will be updated to provide strict metadata (paper_id, abstract, etc.).
+    # Once fixed, we can re-enable strict validation here (Option C).
     @field_validator("date")
     @classmethod
     def validate_date(cls, v: str) -> str:
+        # If it looks like a full date (e.g. 2026/04/10), extract the year
+        if "/" in v or "-" in v:
+            v = v.split("/")[0].split("-")[0]
+
         if v == "UNKNOWN" or not v.isdigit() or len(v) != 4:
             raise ValueError("Arxiv date must be a 4-digit year (YYYY), not UNKNOWN.")
-        return v
-
-    @field_validator("metadata")
-    @classmethod
-    def validate_metadata(cls, v: dict[str, Any]) -> dict[str, Any]:
-        if "paper_id" not in v:
-            raise ValueError("Arxiv metadata requires 'paper_id'.")
-        if "abstract" not in v:
-            raise ValueError("Arxiv metadata requires 'abstract'.")
         return v
 
 
