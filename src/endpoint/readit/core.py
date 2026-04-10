@@ -1,12 +1,16 @@
-from dataclasses import dataclass
-from dataclasses import field
-
-from pydantic import BaseModel
-from pydantic import HttpUrl
+from typing import Annotated
 from typing import Any
+from typing import Literal
+from typing import Union
 from urllib.parse import ParseResult as URL
 from urllib.parse import urlparse
 from urllib.parse import urlunparse
+
+from pydantic import BaseModel
+from pydantic import Field
+from pydantic import HttpUrl
+from pydantic import TypeAdapter
+from pydantic import field_validator
 
 
 class FetchResult(BaseModel):
@@ -15,28 +19,94 @@ class FetchResult(BaseModel):
     trafilatura: dict[str, Any]
 
 
-@dataclass
-class Page:
-    url: URL
+class OtherPageModel(BaseModel):
+    url: str
     title: str
     date: str
-    kind: str = "other"
-    metadata: dict[str, Any] = field(default_factory=dict)
+    kind: Literal["other"] = "other"
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+# TODO: This class was newly added for Issue #28 to separate Arxiv specialized logic
+class ArxivPageModel(BaseModel):
+    url: str
+    title: str
+    date: str
+    kind: Literal["arxiv"] = "arxiv"
+    metadata: dict[str, Any]
+
+    # TODO: In the next phase, summarize_other.py will be updated to provide strict metadata (paper_id, abstract, etc.).
+    # Once fixed, we can re-enable strict validation here (Option C).
+    @field_validator("date")
+    @classmethod
+    def validate_date(cls, v: str) -> str:
+        # If it looks like a full date (e.g. 2026/04/10), extract the year
+        if "/" in v or "-" in v:
+            v = v.split("/")[0].split("-")[0]
+
+        if v == "UNKNOWN" or not v.isdigit() or len(v) != 4:
+            raise ValueError("Arxiv date must be a 4-digit year (YYYY), not UNKNOWN.")
+        return v
+
+
+PageModel = Annotated[
+    Union[ArxivPageModel, OtherPageModel], Field(discriminator="kind")
+]
+_PageAdapter = TypeAdapter(PageModel)
+
+
+class Page:
+    """Wrapper class preserving legacy interface while using Pydantic PageModel internally."""
+
+    _inner: PageModel
+
+    def __init__(
+        self,
+        url: URL,
+        title: str,
+        date: str,
+        kind: str = "other",
+        metadata: dict[str, Any] | None = None,
+    ):
+        if metadata is None:
+            metadata = {}
+        payload = {
+            "url": urlunparse(url),
+            "title": title,
+            "date": date,
+            "kind": kind,
+            "metadata": metadata,
+        }
+        self._inner = _PageAdapter.validate_python(payload)
+
+    @property
+    def url(self) -> URL:
+        return urlparse(str(self._inner.url))
+
+    @property
+    def title(self) -> str:
+        return self._inner.title
+
+    @property
+    def date(self) -> str:
+        return self._inner.date
+
+    @property
+    def kind(self) -> str:
+        return self._inner.kind
+
+    @property
+    def metadata(self) -> dict[str, Any]:
+        return self._inner.metadata
 
     def url_as_str(self) -> str:
-        return urlunparse(self.url)
+        return str(self._inner.url)
 
-    def asdict(self):
-        return {
-            "url": urlunparse(self.url),
-            "title": self.title,
-            "date": self.date,
-            "kind": self.kind,
-            "metadata": self.metadata,
-        }
+    def asdict(self) -> dict[str, Any]:
+        return self._inner.model_dump()
 
     @classmethod
-    def fromdict(cls, d):
+    def fromdict(cls, d: dict[str, Any]) -> "Page":
         return cls(
             url=urlparse(d["url"]),
             title=d["title"],
