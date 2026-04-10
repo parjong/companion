@@ -6,3 +6,16 @@
 
 # Reserved for local automation (across the whole repository)
 Makefile
+
+# Reserved for local Google Antigravity experiments
+#
+# .agents/
+#    rules/
+#    workflows/
+#      ...
+#    skills/
+#      ...
+#
+# - https://antigravity.google/docs/rules-workflows
+# - https://antigravity.google/docs/skills
+/.agents
