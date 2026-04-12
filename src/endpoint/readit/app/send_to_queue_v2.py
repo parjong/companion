@@ -89,6 +89,7 @@ class Queue:
 
     URL_FIELD_ID = "PVTF_lAHOAOPA3c4BNgtrzg9Ovbk"
     ISSUE_DATE_FIELD_ID = "PVTF_lAHOAOPA3c4BNgtrzg9OvdE"
+    KEY_SENTENCES_FIELD_ID = "PVTF_lAHOAOPA3c4BNgtrzhBg-i4"
 
     def __init__(self):
         github_graphql_url = os.environ["GITHUB_GRAPHQL_URL"]
@@ -120,6 +121,17 @@ class Queue:
             fieldId=self.ISSUE_DATE_FIELD_ID,
             value=page.date,
         ).execute(self._client)
+
+        # Key Sentences formatting and update
+        key_sentences = page.metadata.get("key_sentences", [])
+        if key_sentences:
+            formatted_sentences = "\n".join([f"- {s}" for s in key_sentences])
+            UpdateTextFieldValue(
+                projectId=self.PROJECT_ID,
+                itemId=item_id,
+                fieldId=self.KEY_SENTENCES_FIELD_ID,
+                value=formatted_sentences,
+            ).execute(self._client)
 
 
 @click.command()
