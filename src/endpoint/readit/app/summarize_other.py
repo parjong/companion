@@ -1,4 +1,5 @@
 import arxiv
+import datetime
 import json
 from logging import getLogger
 import os
@@ -30,11 +31,25 @@ class Summary(BaseModel):
     )
 
 
+# --- Inference Models & Chains ---
+
+_STRUCTURED_LLM = ChatGoogleGenerativeAI(
+    model="gemini-2.5-flash"
+).with_structured_output(Summary)
+
+# Stage 1: Standard Summarization (Cleaned Text)
 _PROMPT = ChatPromptTemplate.from_template("""
     Analyze the provided content and extract the following information:
     1. **Title**: The concise main title of the article or page.
-    2. **Date**: The publication or issue date in YYYY/MM/DD format. Use "????/??/??" if it cannot be determined.
+    2. **Date**: The publication or issue date in YYYY/MM/DD format.
     3. **Key Sentences**: Identify up to 3 most important sentences that represent the core message of the content.
+
+    **Date Recognition Guidelines:**
+    - Current Date (Today): {today} (KST)
+    - Metadata Date Hint: {date_hint} (Use this if available and applicable)
+    - If the content uses relative dates (e.g., "2 days ago", "last week"), calculate the absolute date based on the Current Date.
+    - If the body text lacks a clear date, try to infer it from the Metadata Date Hint or potential date slugs in the page structure.
+    - If the date cannot be determined, use "????/??/??".
 
     **Critical Constraints for Key Sentences:**
     - Each sentence MUST be extracted EXACTLY as it appears in the original content.
@@ -45,15 +60,58 @@ _PROMPT = ChatPromptTemplate.from_template("""
 
     Content: {content}
     """)
-_STRUCTURED_LLM = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash"
-).with_structured_output(Summary)
 _CHAIN = _PROMPT | _STRUCTURED_LLM
+
+# Stage 2: Fallback Extraction (Raw HTML)
+_FALLBACK_PROMPT = ChatPromptTemplate.from_template("""
+    Identify the publication date from the provided raw HTML.
+    Specifically look for relative time patterns (e.g., "1 day ago", "3시간 전") and meta tags.
+
+    **Guidelines:**
+    - Today: {today} (KST)
+    - Calculate absolute dates from relative expressions.
+    - Return "????/??/??" if not found.
+
+    Format: JSON object with "date", "title" (use current: {current_title}), and "key_sentences" (provide empty list []).
+
+    Raw HTML: {html}
+    """)
+_FALLBACK_CHAIN = _FALLBACK_PROMPT | _STRUCTURED_LLM
 
 
 def page_of_(fetch_result: FetchResult) -> Page:
     content = fetch_result.trafilatura.get("text") or fetch_result.html
-    summary = _CHAIN.invoke({"content": content})
+
+    # Calculate current date in KST (UTC+9)
+    # TODO: Move 'today' calculation to the fetch stage in the future to ensure temporal consistency
+    kst = datetime.timezone(datetime.timedelta(hours=9))
+    today = datetime.datetime.now(kst).strftime("%Y/%m/%d")
+
+    # Get date hint from trafilatura metadata
+    date_hint = fetch_result.trafilatura.get("date") or "Unknown"
+
+    summary = _CHAIN.invoke(
+        {
+            "content": content,
+            "today": today,
+            "date_hint": date_hint,
+        }
+    )
+
+    # Fallback stage: if date is unknown, try parsing raw HTML
+    if summary.date == "????/??/??" or "??" in summary.date:
+        logger.info(
+            "First inference failed to find date. Triggering fallback with raw HTML..."
+        )
+        fallback_res = _FALLBACK_CHAIN.invoke(
+            {
+                "html": fetch_result.html,
+                "today": today,
+                "current_title": summary.title,
+            }
+        )
+        logger.info(f"Fallback result: {fallback_res.date}")
+        summary.date = fallback_res.date
 
     return Page(
         url=urlparse(str(fetch_result.url)),
