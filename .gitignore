@@ -19,3 +19,6 @@ Makefile
 # - https://antigravity.google/docs/rules-workflows
 # - https://antigravity.google/docs/skills
 /.agents
+!/.agents/skills/
+!/.agents/skills/antigravity-tips/
+!/.agents/skills/antigravity-tips/SKILL.md

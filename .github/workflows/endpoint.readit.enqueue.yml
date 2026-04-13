@@ -55,6 +55,15 @@ jobs:
           endpoint-readit-send-to-queue-v2 "$SUMMARY_FILE"
         continue-on-error: true
         # 'continue-on-error' ensures that a failure from one command not to affect the others
+      - name: 'Upload artifacts'
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: readit-artifacts
+          path: |
+            /tmp/fetch.json
+            /tmp/summary.json
+          if-no-files-found: ignore
     # steps/ END
   # run/ END
 # jobs/ END
