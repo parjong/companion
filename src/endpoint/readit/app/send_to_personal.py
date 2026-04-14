@@ -12,9 +12,22 @@ from contextlib import ExitStack
 from unittest.mock import patch
 
 from endpoint.readit.core import Page
+from endpoint.readit.github import CreateIssue
+from endpoint.readit.github import AddIssueComment
 
 logger = getLogger(__name__)
 logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())
+
+
+def mock_create_issue_execute(self, client) -> str:
+    title = self._values["title"]
+    logger.info(f"  [Dry Run] Would create Issue: '{title}'")
+    return "DUMMY_ISSUE_ID"
+
+
+def mock_add_issue_comment_execute(self, client) -> str:
+    logger.info("  [Dry Run] Would add Issue Comment")
+    return "DUMMY_COMMENT_ID"
 
 
 def mock_create_discussion_execute(self, client) -> None:
@@ -48,8 +61,11 @@ title: $title,
         pass
 
 
+# TODO: Consider renaming this class to ReviewIssueStorage or similar in the future.
 class PersonalStorage:
-    REPOSITORY_ID = "MDEwOlJlcG9zaXRvcnk4NTc2NDg5Mw=="
+    # Repository IDs for separation
+    PAPERS_REPO_ID = "R_kgDOSCdIzw"  # readit-papers
+    OTHERS_REPO_ID = "R_kgDOSCdKKw"  # readit-others
 
     def __init__(self):
         github_graphql_url = os.environ["GITHUB_GRAPHQL_URL"]
@@ -99,9 +115,8 @@ class PersonalStorage:
         title = f"[{year}] {page.title}"
         body = "\n".join(lines)
 
-        CreateDiscussion(
-            repositoryId=self.REPOSITORY_ID,
-            categoryId="DIC_kwDOBRyrHc4Cz64i",
+        CreateIssue(
+            repositoryId=self.PAPERS_REPO_ID,
             title=title,
             body=body,
         ).execute(self._client)
@@ -110,12 +125,20 @@ class PersonalStorage:
         title = f"[{page.date}] {page.title}"
         body = page.url_as_str()
 
-        CreateDiscussion(
-            repositoryId=self.REPOSITORY_ID,
-            categoryId="DIC_kwDOBRyrHc4Cz61s",
+        issue_id = CreateIssue(
+            repositoryId=self.OTHERS_REPO_ID,
             title=title,
             body=body,
         ).execute(self._client)
+
+        # Add key sentences as a comment if available
+        key_sentences = page.metadata.get("key_sentences", [])
+        if key_sentences:
+            comment_body = "\n".join([f"- {s}" for s in key_sentences])
+            AddIssueComment(
+                subjectId=issue_id,
+                body=comment_body,
+            ).execute(self._client)
 
 
 @click.command()
@@ -137,6 +160,12 @@ def main(summary_path: str, dry_run: bool) -> None:
     with ExitStack() as stack:
         if dry_run:
             logger.info("--- DRY RUN MODE ENABLED (Side-effects suppressed) ---")
+            stack.enter_context(
+                patch.object(CreateIssue, "execute", mock_create_issue_execute)
+            )
+            stack.enter_context(
+                patch.object(AddIssueComment, "execute", mock_add_issue_comment_execute)
+            )
             stack.enter_context(
                 patch.object(
                     CreateDiscussion, "execute", mock_create_discussion_execute

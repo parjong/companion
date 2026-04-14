@@ -32,6 +32,54 @@ class AddProjectV2DraftIssue:
         return result["op"]["item"]["id"]
 
 
+class CreateIssue:
+    # https://docs.github.com/en/graphql/reference/mutations#createissue
+    QUERY = gql("""
+    mutation ($repositoryId: ID!, $title: String!, $body: String!) {
+      op: createIssue(input: {
+        repositoryId: $repositoryId,
+        title: $title,
+        body: $body,
+      }) { issue { id } }
+    }
+    """)
+
+    def __init__(self, *, repositoryId: str, title: str, body: str):
+        self._values = {
+            "repositoryId": repositoryId,
+            "title": title,
+            "body": body,
+        }
+
+    def execute(self, client) -> str:
+        result = client.execute(self.QUERY, variable_values=self._values)
+        logger.debug(result)
+        return result["op"]["issue"]["id"]
+
+
+class AddIssueComment:
+    # https://docs.github.com/en/graphql/reference/mutations#addcomment
+    QUERY = gql("""
+    mutation ($subjectId: ID!, $body: String!) {
+      op: addComment(input: {
+        subjectId: $subjectId,
+        body: $body,
+      }) { commentEdge { node { id } } }
+    }
+    """)
+
+    def __init__(self, *, subjectId: str, body: str):
+        self._values = {
+            "subjectId": subjectId,
+            "body": body,
+        }
+
+    def execute(self, client) -> str:
+        result = client.execute(self.QUERY, variable_values=self._values)
+        logger.debug(result)
+        return result["op"]["commentEdge"]["node"]["id"]
+
+
 class UpdateTextFieldValue:
     # https://docs.github.com/en/graphql/reference/mutations#updateprojectv2itemfieldvalue
     QUERY = gql("""
