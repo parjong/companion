@@ -7,7 +7,7 @@ from logging import getLogger
 import click
 import trafilatura
 
-from endpoint.readit.core import FetchResult
+from endpoint.readit.core import Blackboard
 
 logger = getLogger(__name__)
 logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())
@@ -48,7 +48,7 @@ def main(output_path: str, url: str) -> None:
         trafilatura_data = {}
 
     # Prepare final output using Pydantic
-    result = FetchResult(
+    result = Blackboard(
         url=normalized_url, html=page_html, trafilatura=trafilatura_data
     )
 
