@@ -4,7 +4,6 @@ from gql import Client
 from gql import gql
 from gql.transport.requests import RequestsHTTPTransport as HTTPTransport
 
-import json
 from logging import getLogger
 import os
 from typing import NewType
@@ -145,8 +144,7 @@ def main(summary_path: str, dry_run: bool) -> None:
     import logging
 
     logging.basicConfig(level=logging.INFO)
-    with open(summary_path, "r") as f:
-        page = Page.fromdict(json.load(f))
+    page = Page.from_pipeline_file(summary_path)
 
     logger.info("page = '%s'", page)
 
