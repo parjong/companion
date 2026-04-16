@@ -19,6 +19,16 @@ class FetchResult(BaseModel):
     trafilatura: dict[str, Any]
 
 
+class Blackboard(BaseModel):
+    url: HttpUrl
+    html: str | None = None
+    trafilatura: dict[str, Any] | None = None
+    title: str | None = None
+    date: str | None = None
+    kind: str = "other"
+    metadata: dict[str, Any] | None = None
+
+
 class OtherMetadata(BaseModel):
     key_sentences: list[str] = Field(default_factory=list)
 
@@ -123,3 +133,15 @@ class Page:
             kind=d.get("kind", "other"),
             metadata=d.get("metadata"),
         )
+
+    @classmethod
+    def from_pipeline_file(cls, path: str) -> "Page":
+        import json
+        from pathlib import Path
+
+        data = json.loads(Path(path).read_text())
+
+        # Simple detection: if it has required Page fields, use it.
+        # If it's a Blackboard, it must at least have title and date to be converted to Page.
+        # For Phase 1, we assume the data is sufficient.
+        return cls.fromdict(data)
