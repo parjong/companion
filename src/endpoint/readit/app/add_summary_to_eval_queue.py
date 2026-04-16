@@ -4,7 +4,6 @@ from gql import Client
 from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
-import json
 from logging import getLogger
 import os
 
@@ -83,7 +82,7 @@ def main(summary_path: str) -> None:
     )
 
     with open(summary_path, "r") as f:
-        page = Page.fromdict(json.load(f))
+        page = Page.from_pipeline_file(f)
 
     logger.info("page = '%s'", page)
 

@@ -60,3 +60,43 @@ def test_page_direct_instantiation():
     assert page.kind == "other"
     assert page.date == "UNKNOWN"
     assert page.url_as_str() == "https://github.com"
+
+
+def test_blackboard_from_pipeline_file(tmp_path):
+    """Test loading Blackboard from both legacy and new formats."""
+    import json
+    from endpoint.readit.core import Blackboard
+
+    # 1. New Format
+    bb_path = tmp_path / "bb.json"
+    bb_data = {
+        "url": "https://example.com",
+        "kind": "other",
+        "title": "BB Title",
+    }
+    bb_path.write_text(json.dumps(bb_data))
+
+    bb = Blackboard.from_pipeline_file(str(bb_path))
+    assert str(bb.url).rstrip("/") == "https://example.com"
+    assert bb.kind == "other"
+    assert bb.title == "BB Title"
+
+    # 2. Legacy Format (FetchResult)
+    legacy_path = tmp_path / "legacy.json"
+    legacy_data = {
+        "url": "https://example.com/legacy",
+        "html": "<html></html>",
+        "trafilatura": {"text": "hello"},
+    }
+    legacy_path.write_text(json.dumps(legacy_data))
+
+    bb_legacy = Blackboard.from_pipeline_file(str(legacy_path))
+    assert str(bb_legacy.url).rstrip("/") == "https://example.com/legacy"
+    assert bb_legacy.html == "<html></html>"
+    assert bb_legacy.trafilatura == {"text": "hello"}
+    assert bb_legacy.kind == "other"  # default
+
+    # 3. File-like object
+    with open(bb_path, "r") as f:
+        bb_from_file = Blackboard.from_pipeline_file(f)
+    assert bb_from_file.title == "BB Title"
