@@ -1,3 +1,5 @@
+from typing import IO
+
 import arxiv
 import datetime
 import json
@@ -11,7 +13,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel
 from pydantic import Field
 
-from endpoint.readit.core import Page
+from endpoint.readit.core import Blackboard
 from endpoint.readit.core import FetchResult
 
 
@@ -79,8 +81,12 @@ _FALLBACK_PROMPT = ChatPromptTemplate.from_template("""
 _FALLBACK_CHAIN = _FALLBACK_PROMPT | _STRUCTURED_LLM
 
 
-def page_of_(fetch_result: FetchResult) -> Page:
-    content = fetch_result.trafilatura.get("text") or fetch_result.html
+def page_of_(bb: Blackboard) -> Blackboard:
+    if not bb.html:
+        raise ValueError(f"No HTML content available for summarization: {bb.url}")
+
+    # Use 'or {}' for safe access in case bb.trafilatura is None (per Blackboard model definition)
+    content = (bb.trafilatura or {}).get("text") or bb.html
 
     # Calculate current date in KST (UTC+9)
     # TODO: Move 'today' calculation to the fetch stage in the future to ensure temporal consistency
@@ -88,7 +94,7 @@ def page_of_(fetch_result: FetchResult) -> Page:
     today = datetime.datetime.now(kst).strftime("%Y/%m/%d")
 
     # Get date hint from trafilatura metadata
-    date_hint = fetch_result.trafilatura.get("date") or "Unknown"
+    date_hint = (bb.trafilatura or {}).get("date") or "Unknown"
 
     summary = _CHAIN.invoke(
         {
@@ -105,7 +111,7 @@ def page_of_(fetch_result: FetchResult) -> Page:
         )
         fallback_res = _FALLBACK_CHAIN.invoke(
             {
-                "html": fetch_result.html,
+                "html": bb.html,
                 "today": today,
                 "current_title": summary.title,
             }
@@ -113,26 +119,43 @@ def page_of_(fetch_result: FetchResult) -> Page:
         logger.info(f"Fallback result: {fallback_res.date}")
         summary.date = fallback_res.date
 
-    return Page(
-        url=urlparse(str(fetch_result.url)),
-        title=summary.title,
-        date=summary.date,
-        metadata={
-            "key_sentences": summary.key_sentences,
-        },
+    return bb.model_copy(
+        update={
+            "title": summary.title,
+            "date": summary.date,
+            "metadata": {"key_sentences": summary.key_sentences},
+        }
     )
+
+
+def load_blackboard(f: IO) -> Blackboard:
+    """Input Adapter: Loads either a legacy FetchResult or a Blackboard from JSON."""
+    data = json.load(f)
+
+    try:
+        # Try as Blackboard first
+        return Blackboard.model_validate(data)
+    except Exception:
+        # Fallback to legacy FetchResult and convert
+        fr = FetchResult.model_validate(data)
+        return Blackboard(
+            url=fr.url,
+            html=fr.html,
+            trafilatura=fr.trafilatura,
+        )
 
 
 @click.command()
 @click.option("-o", "output_path", required=True)
+# TODO: Rename to input_path in Phase 3
 @click.argument("fetch_result_path")
 def main(output_path: str, fetch_result_path: str) -> None:
     logger.info("Summarize from '%s'", fetch_result_path)
 
     with open(fetch_result_path, "r", encoding="utf-8") as f:
-        fetch_result = FetchResult.model_validate_json(f.read())
+        bb = load_blackboard(f)
 
-    url = str(fetch_result.url)
+    url = str(bb.url)
     parsed_url = urlparse(url)
 
     if parsed_url.netloc == "arxiv.org":
@@ -141,23 +164,24 @@ def main(output_path: str, fetch_result_path: str) -> None:
         results = list(search.results())
         paper = results[0]
 
-        page = Page(
-            url=parsed_url,
-            title=paper.title,
-            date=paper.published.strftime("%Y/%m/%d"),
-            kind="arxiv",
-            metadata={
-                "summary": paper.summary,
-                "year": str(paper.published.year),
-            },
+        bb = bb.model_copy(
+            update={
+                "title": paper.title,
+                "date": paper.published.strftime("%Y/%m/%d"),
+                "kind": "arxiv",
+                "metadata": {
+                    "summary": paper.summary,
+                    "year": str(paper.published.year),
+                },
+            }
         )
     else:
-        page = page_of_(fetch_result)
+        bb = page_of_(bb)
 
-    logger.info("Result: '%s'", page)
+    logger.info("Result: '%s'", bb.model_dump(exclude={"html", "trafilatura"}))
 
     with open(output_path, "w") as f:
-        json.dump(page.asdict(), f, indent=4)
+        json.dump(bb.model_dump(mode="json"), f, indent=4)
 
     logger.info("Check '%s'", output_path)
 
