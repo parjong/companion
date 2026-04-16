@@ -28,6 +28,28 @@ class Blackboard(BaseModel):
     kind: str = "other"
     metadata: dict[str, Any] | None = None
 
+    @classmethod
+    # TODO: To be applied to other modules (e.g. summarize_other.py) in Phase 4
+    def from_pipeline_file(cls, path_or_file: Any) -> "Blackboard":
+        import json
+        from pathlib import Path
+
+        if hasattr(path_or_file, "read"):
+            data = json.load(path_or_file)
+        else:
+            data = json.loads(Path(path_or_file).read_text())
+
+        try:
+            return cls.model_validate(data)
+        except Exception:
+            # Fallback to legacy FetchResult and convert
+            fr = FetchResult.model_validate(data)
+            return cls(
+                url=fr.url,
+                html=fr.html,
+                trafilatura=fr.trafilatura,
+            )
+
 
 class OtherMetadata(BaseModel):
     key_sentences: list[str] = Field(default_factory=list)
@@ -135,11 +157,14 @@ class Page:
         )
 
     @classmethod
-    def from_pipeline_file(cls, path: str) -> "Page":
+    def from_pipeline_file(cls, path_or_file: Any) -> "Page":
         import json
         from pathlib import Path
 
-        data = json.loads(Path(path).read_text())
+        if hasattr(path_or_file, "read"):
+            data = json.load(path_or_file)
+        else:
+            data = json.loads(Path(path_or_file).read_text())
 
         # Simple detection: if it has required Page fields, use it.
         # If it's a Blackboard, it must at least have title and date to be converted to Page.

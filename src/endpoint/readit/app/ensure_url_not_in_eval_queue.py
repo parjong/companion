@@ -6,7 +6,7 @@ from logging import getLogger
 import os
 import sys
 
-from endpoint.readit.core import FetchResult
+from endpoint.readit.core import Blackboard
 from endpoint.readit.github import ListProjectV2ItemFieldValues
 
 logger = getLogger(__name__)
@@ -26,6 +26,7 @@ class EvalQueue:
 
 
 @click.command()
+# TODO: Rename to input_path in Phase 4
 @click.argument("fetch_result_path")
 def main(fetch_result_path: str) -> None:
     logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())
@@ -40,8 +41,9 @@ def main(fetch_result_path: str) -> None:
         )
     )
 
+    # TODO: Rename to bb in Phase 4
     with open(fetch_result_path, "r") as f:
-        fetch_result = FetchResult.model_validate_json(f.read())
+        fetch_result = Blackboard.from_pipeline_file(f)
 
     url_to_check = str(fetch_result.url)
     logger.info("Checking URL: %s", url_to_check)
