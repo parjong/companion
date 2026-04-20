@@ -14,7 +14,6 @@ from pydantic import BaseModel
 from pydantic import Field
 
 from endpoint.readit.core import Blackboard
-from endpoint.readit.core import FetchResult
 
 
 logger = getLogger(__name__)
@@ -129,20 +128,8 @@ def page_of_(bb: Blackboard) -> Blackboard:
 
 
 def load_blackboard(f: IO) -> Blackboard:
-    """Input Adapter: Loads either a legacy FetchResult or a Blackboard from JSON."""
-    data = json.load(f)
-
-    try:
-        # Try as Blackboard first
-        return Blackboard.model_validate(data)
-    except Exception:
-        # Fallback to legacy FetchResult and convert
-        fr = FetchResult.model_validate(data)
-        return Blackboard(
-            url=fr.url,
-            html=fr.html,
-            trafilatura=fr.trafilatura,
-        )
+    """Input Adapter: Loads a Blackboard from JSON via the core Blackboard loader."""
+    return Blackboard.from_pipeline_file(f)
 
 
 @click.command()

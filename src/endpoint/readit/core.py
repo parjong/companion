@@ -13,12 +13,6 @@ from pydantic import TypeAdapter
 from pydantic import field_validator
 
 
-class FetchResult(BaseModel):
-    url: HttpUrl
-    html: str
-    trafilatura: dict[str, Any]
-
-
 class Blackboard(BaseModel):
     url: HttpUrl
     html: str | None = None
@@ -39,16 +33,7 @@ class Blackboard(BaseModel):
         else:
             data = json.loads(Path(path_or_file).read_text())
 
-        try:
-            return cls.model_validate(data)
-        except Exception:
-            # Fallback to legacy FetchResult and convert
-            fr = FetchResult.model_validate(data)
-            return cls(
-                url=fr.url,
-                html=fr.html,
-                trafilatura=fr.trafilatura,
-            )
+        return cls.model_validate(data)
 
 
 class OtherMetadata(BaseModel):
