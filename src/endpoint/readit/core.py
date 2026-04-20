@@ -11,6 +11,16 @@ from pydantic import Field
 from pydantic import HttpUrl
 from pydantic import TypeAdapter
 from pydantic import field_validator
+from pydantic import model_validator
+
+
+class OtherMetadata(BaseModel):
+    key_sentences: list[str] = Field(default_factory=list)
+
+
+class ArxivMetadata(BaseModel):
+    summary: str
+    year: str
 
 
 class Blackboard(BaseModel):
@@ -19,8 +29,32 @@ class Blackboard(BaseModel):
     trafilatura: dict[str, Any] | None = None
     title: str | None = None
     date: str | None = None
+    # TODO: Consider allowing None to represent 'not yet categorized' state
     kind: str = "other"
-    metadata: dict[str, Any] | None = None
+
+    arxiv: ArxivMetadata | None = Field(None)
+    other: OtherMetadata | None = Field(default_factory=OtherMetadata)
+
+    @model_validator(mode="before")
+    @classmethod
+    def migrate_metadata(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            metadata = data.pop("metadata", None)
+            if metadata is not None:
+                kind = data.get("kind", "other")
+                if kind == "arxiv":
+                    data["arxiv"] = metadata
+                else:
+                    data["other"] = metadata
+        return data
+
+    @model_validator(mode="after")
+    def validate_kind_metadata(self) -> "Blackboard":
+        if self.kind == "arxiv" and self.arxiv is None:
+            raise ValueError("arxiv metadata is required when kind is 'arxiv'")
+        if self.kind == "other" and self.other is None:
+            raise ValueError("other metadata is required when kind is 'other'")
+        return self
 
     @classmethod
     # TODO: To be applied to other modules (e.g. summarize_other.py) in Phase 4
@@ -36,21 +70,12 @@ class Blackboard(BaseModel):
         return cls.model_validate(data)
 
 
-class OtherMetadata(BaseModel):
-    key_sentences: list[str] = Field(default_factory=list)
-
-
 class OtherPageModel(BaseModel):
     url: str
     title: str
     date: str
     kind: Literal["other"] = "other"
     metadata: OtherMetadata = Field(default_factory=OtherMetadata)
-
-
-class ArxivMetadata(BaseModel):
-    summary: str
-    year: str
 
 
 class ArxivPageModel(BaseModel):
@@ -133,6 +158,15 @@ class Page:
 
     @classmethod
     def fromdict(cls, d: dict[str, Any]) -> "Page":
+        # Bridge logic: If metadata is missing but arxiv/other is present,
+        # move it to metadata for PageModel compatibility.
+        if "metadata" not in d:
+            kind = d.get("kind", "other")
+            if kind == "arxiv" and "arxiv" in d:
+                d["metadata"] = d["arxiv"]
+            elif kind == "other" and "other" in d:
+                d["metadata"] = d["other"]
+
         return cls(
             url=urlparse(d["url"]),
             title=d["title"],
