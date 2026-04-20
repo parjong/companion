@@ -1,5 +1,8 @@
+import pytest
 from urllib.parse import urlparse
 from endpoint.readit.core import Page
+from endpoint.readit.core import Blackboard
+from endpoint.readit.core import ArxivMetadata
 
 
 def test_page_fromdict_other():
@@ -62,41 +65,71 @@ def test_page_direct_instantiation():
     assert page.url_as_str() == "https://github.com"
 
 
-def test_blackboard_from_pipeline_file(tmp_path):
-    """Test loading Blackboard from both legacy and new formats."""
-    import json
-    from endpoint.readit.core import Blackboard
+def test_blackboard_arxiv_validation():
+    """Test that kind='arxiv' requires arxiv metadata."""
+    # Valid arxiv
+    bb = Blackboard(
+        url="https://arxiv.org/abs/1234.5678",
+        kind="arxiv",
+        arxiv=ArxivMetadata(summary="Summary", year="2024"),
+    )
+    assert bb.arxiv.year == "2024"
 
-    # 1. New Format
-    bb_path = tmp_path / "bb.json"
-    bb_data = {
+    # Invalid arxiv (missing arxiv field)
+    with pytest.raises(ValueError, match="arxiv metadata is required"):
+        Blackboard(url="https://arxiv.org/abs/1234.5678", kind="arxiv")
+
+
+def test_blackboard_metadata_migration():
+    """Test that legacy 'metadata' in input is migrated to specialized fields."""
+    # 1. Arxiv migration
+    data_arxiv = {
+        "url": "https://arxiv.org/abs/1234.5678",
+        "kind": "arxiv",
+        "metadata": {"summary": "Migrated summary", "year": "2024"},
+    }
+    bb_arxiv = Blackboard.model_validate(data_arxiv)
+    assert bb_arxiv.arxiv is not None
+    assert bb_arxiv.arxiv.summary == "Migrated summary"
+    # Ensure metadata was popped
+    assert "metadata" not in bb_arxiv.model_dump(exclude_unset=True)
+
+    # 2. Other migration
+    data_other = {
         "url": "https://example.com",
         "kind": "other",
-        "title": "BB Title",
+        "metadata": {"key_sentences": ["Sentence A"]},
     }
-    bb_path.write_text(json.dumps(bb_data))
+    bb_other = Blackboard.model_validate(data_other)
+    assert bb_other.other is not None
+    assert bb_other.other.key_sentences == ["Sentence A"]
 
-    bb = Blackboard.from_pipeline_file(str(bb_path))
-    assert str(bb.url).rstrip("/") == "https://example.com"
-    assert bb.kind == "other"
-    assert bb.title == "BB Title"
 
-    # 2. Legacy Format (FetchResult)
-    legacy_path = tmp_path / "legacy.json"
-    legacy_data = {
-        "url": "https://example.com/legacy",
-        "html": "<html></html>",
-        "trafilatura": {"text": "hello"},
+def test_page_bridge_logic():
+    """Test that Page class can load from new Blackboard format (without metadata key)."""
+    # Blackboard format (using 'other' instead of 'metadata')
+    bb_data = {
+        "url": "https://example.com",
+        "title": "New Format Title",
+        "date": "2024/04/21",
+        "kind": "other",
+        "other": {"key_sentences": ["Sentence 1", "Sentence 2"]},
     }
-    legacy_path.write_text(json.dumps(legacy_data))
 
-    bb_legacy = Blackboard.from_pipeline_file(str(legacy_path))
-    assert str(bb_legacy.url).rstrip("/") == "https://example.com/legacy"
-    assert bb_legacy.html == "<html></html>"
-    assert bb_legacy.trafilatura == {"text": "hello"}
-    assert bb_legacy.kind == "other"  # default
+    # Should load correctly into Page despite missing 'metadata' key in local dict
+    page = Page.fromdict(bb_data)
 
-    # 3. File-like object
-    with open(bb_path, "r") as f:
-        bb_from_file = Blackboard.from_pipeline_file(f)
-    assert bb_from_file.title == "BB Title"
+    assert page.kind == "other"
+    assert page.metadata["key_sentences"] == ["Sentence 1", "Sentence 2"]
+
+    # Arxiv case
+    arxiv_data = {
+        "url": "https://arxiv.org/abs/1234.5678",
+        "title": "Arxiv Paper",
+        "date": "2024",
+        "kind": "arxiv",
+        "arxiv": {"summary": "Paper summary", "year": "2024"},
+    }
+    page_arxiv = Page.fromdict(arxiv_data)
+    assert page_arxiv.kind == "arxiv"
+    assert page_arxiv.metadata["summary"] == "Paper summary"

@@ -14,6 +14,8 @@ from pydantic import BaseModel
 from pydantic import Field
 
 from endpoint.readit.core import Blackboard
+from endpoint.readit.core import ArxivMetadata
+from endpoint.readit.core import OtherMetadata
 
 
 logger = getLogger(__name__)
@@ -122,7 +124,7 @@ def page_of_(bb: Blackboard) -> Blackboard:
         update={
             "title": summary.title,
             "date": summary.date,
-            "metadata": {"key_sentences": summary.key_sentences},
+            "other": OtherMetadata(key_sentences=summary.key_sentences),
         }
     )
 
@@ -156,10 +158,10 @@ def main(output_path: str, fetch_result_path: str) -> None:
                 "title": paper.title,
                 "date": paper.published.strftime("%Y/%m/%d"),
                 "kind": "arxiv",
-                "metadata": {
-                    "summary": paper.summary,
-                    "year": str(paper.published.year),
-                },
+                "arxiv": ArxivMetadata(
+                    summary=paper.summary,
+                    year=str(paper.published.year),
+                ),
             }
         )
     else:
