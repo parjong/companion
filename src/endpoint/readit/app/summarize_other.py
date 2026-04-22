@@ -136,12 +136,11 @@ def load_blackboard(f: IO) -> Blackboard:
 
 @click.command()
 @click.option("-o", "output_path", required=True)
-# TODO: Rename to input_path in Phase 3
-@click.argument("fetch_result_path")
-def main(output_path: str, fetch_result_path: str) -> None:
-    logger.info("Summarize from '%s'", fetch_result_path)
+@click.argument("input_path")
+def main(output_path: str, input_path: str) -> None:
+    logger.info("Summarize from '%s'", input_path)
 
-    with open(fetch_result_path, "r", encoding="utf-8") as f:
+    with open(input_path, "r", encoding="utf-8") as f:
         bb = load_blackboard(f)
 
     url = str(bb.url)

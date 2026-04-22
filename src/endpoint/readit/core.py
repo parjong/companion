@@ -39,7 +39,6 @@ class Blackboard(BaseModel):
         return str(self.url)
 
     @classmethod
-    # TODO: To be applied to other modules (e.g. summarize_other.py) in Phase 4
     def from_pipeline_file(cls, path_or_file: Any) -> "Blackboard":
         import json
         from pathlib import Path
