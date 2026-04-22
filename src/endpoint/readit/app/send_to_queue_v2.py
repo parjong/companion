@@ -11,7 +11,7 @@ from typing import NewType
 from contextlib import ExitStack
 from unittest.mock import patch
 
-from endpoint.readit.core import Page
+from endpoint.readit.core import Blackboard
 
 logger = getLogger(__name__)
 logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())
@@ -102,27 +102,27 @@ class Queue:
             )
         )
 
-    def add(self, page: Page):
+    def add(self, bb: Blackboard):
         item_id: ProjectItemID = AddProjectV2DraftIssue(
-            projectId=self.PROJECT_ID, title=page.title, body=page.url_as_str()
+            projectId=self.PROJECT_ID, title=bb.title, body=bb.url_as_str()
         ).execute(self._client)
 
         UpdateTextFieldValue(
             projectId=self.PROJECT_ID,
             itemId=item_id,
             fieldId=self.URL_FIELD_ID,
-            value=page.url_as_str(),
+            value=bb.url_as_str(),
         ).execute(self._client)
 
         UpdateTextFieldValue(
             projectId=self.PROJECT_ID,
             itemId=item_id,
             fieldId=self.ISSUE_DATE_FIELD_ID,
-            value=page.date,
+            value=bb.date,
         ).execute(self._client)
 
         # Key Sentences formatting and update
-        key_sentences = page.metadata.get("key_sentences", [])
+        key_sentences = bb.other.key_sentences if bb.other else []
         if key_sentences:
             formatted_sentences = "\n".join([f"- {s}" for s in key_sentences])
             UpdateTextFieldValue(
@@ -144,9 +144,9 @@ def main(summary_path: str, dry_run: bool) -> None:
     import logging
 
     logging.basicConfig(level=logging.INFO)
-    page = Page.from_pipeline_file(summary_path)
+    bb = Blackboard.from_pipeline_file(summary_path)
 
-    logger.info("page = '%s'", page)
+    logger.info("blackboard = '%s'", bb)
 
     queue = Queue()
 
@@ -164,6 +164,6 @@ def main(summary_path: str, dry_run: bool) -> None:
                 )
             )
 
-        queue.add(page)
+        queue.add(bb)
 
     logger.info("Done")
