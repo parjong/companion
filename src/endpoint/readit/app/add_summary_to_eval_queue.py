@@ -7,7 +7,7 @@ from datetime import timezone
 from logging import getLogger
 import os
 
-from endpoint.readit.core import Page
+from endpoint.readit.core import Blackboard
 from endpoint.readit.github import ProjectItemID
 from endpoint.readit.github import AddProjectV2DraftIssue
 from endpoint.readit.github import UpdateTextFieldValue
@@ -36,23 +36,23 @@ class EvalQueue:
     def __init__(self, client: Client):
         self._client = client
 
-    def add(self, page: Page):
+    def add(self, bb: Blackboard):
         item_id: ProjectItemID = AddProjectV2DraftIssue(
-            projectId=self.PROJECT_ID, title=page.title, body=page.url_as_str()
+            projectId=self.PROJECT_ID, title=bb.title, body=bb.url_as_str()
         ).execute(self._client)
 
         UpdateTextFieldValue(
             projectId=self.PROJECT_ID,
             itemId=item_id,
             fieldId=self.TITLE_FIELD_ID,
-            value=page.title,
+            value=bb.title,
         ).execute(self._client)
 
         UpdateTextFieldValue(
             projectId=self.PROJECT_ID,
             itemId=item_id,
             fieldId=self.URL_FIELD_ID,
-            value=page.url_as_str(),
+            value=bb.url_as_str(),
         ).execute(self._client)
 
         kst = timezone(timedelta(hours=9))
@@ -82,13 +82,13 @@ def main(summary_path: str) -> None:
     )
 
     with open(summary_path, "r") as f:
-        page = Page.from_pipeline_file(f)
+        bb = Blackboard.from_pipeline_file(f)
 
-    logger.info("page = '%s'", page)
+    logger.info("blackboard = '%s'", bb)
 
     queue = EvalQueue(client)
 
-    queue.add(page)
+    queue.add(bb)
 
     logger.info("Done")
 

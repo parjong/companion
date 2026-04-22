@@ -10,7 +10,7 @@ import os
 from contextlib import ExitStack
 from unittest.mock import patch
 
-from endpoint.readit.core import Page
+from endpoint.readit.core import Blackboard
 from endpoint.readit.github import CreateIssue
 from endpoint.readit.github import AddIssueComment
 
@@ -40,7 +40,7 @@ class CreateDiscussion:
       createDiscussion(input: {
           repositoryId: $repositoryId,
           categoryId: $categoryId,
-title: $title,
+          title: $title,
           body: $body
       }) { discussion { id } }
     }
@@ -82,23 +82,23 @@ class PersonalStorage:
             "arxiv": self.add_arXiv_article,
         }
 
-    def add_article(self, page: Page):
-        if self._add_known_article_if_possible(page):
+    def add_article(self, bb: Blackboard):
+        if self._add_known_article_if_possible(bb):
             return
 
         try:
-            self.add_other_article(page)
+            self.add_other_article(bb)
         except Exception as e:
             logger.error(f"Failed to add article with add_other_article: {e}")
             raise
 
-    def _add_known_article_if_possible(self, page: Page) -> bool:
-        handler = self._handlers.get(page.kind)
+    def _add_known_article_if_possible(self, bb: Blackboard) -> bool:
+        handler = self._handlers.get(bb.kind)
         if not handler:
             return False
 
         try:
-            handler(page)
+            handler(bb)
             return True
         except Exception as e:
             handler_name = getattr(handler, "__name__", str(handler))
@@ -106,12 +106,13 @@ class PersonalStorage:
             logger.info("Falling back to add_other_article")
             return False
 
-    def add_arXiv_article(self, page: Page):
-        summary = page.metadata.get("summary", "")
-        lines = [page.url_as_str(), "", f"> {summary}"]
+    def add_arXiv_article(self, bb: Blackboard):
+        # Validation ensures bb.arxiv is not None if kind is 'arxiv'
+        summary = bb.arxiv.summary if bb.arxiv else ""
+        lines = [bb.url_as_str(), "", f"> {summary}"]
 
-        year = page.metadata.get("year", "????")
-        title = f"[{year}] {page.title}"
+        year = bb.arxiv.year if bb.arxiv else "????"
+        title = f"[{year}] {bb.title}"
         body = "\n".join(lines)
 
         CreateIssue(
@@ -120,9 +121,9 @@ class PersonalStorage:
             body=body,
         ).execute(self._client)
 
-    def add_other_article(self, page: Page):
-        title = f"[{page.date}] {page.title}"
-        body = page.url_as_str()
+    def add_other_article(self, bb: Blackboard):
+        title = f"[{bb.date}] {bb.title}"
+        body = bb.url_as_str()
 
         issue_id = CreateIssue(
             repositoryId=self.OTHERS_REPO_ID,
@@ -131,7 +132,7 @@ class PersonalStorage:
         ).execute(self._client)
 
         # Add key sentences as a comment if available
-        key_sentences = page.metadata.get("key_sentences", [])
+        key_sentences = bb.other.key_sentences if bb.other else []
         if key_sentences:
             comment_body = "\n".join([f"- {s}" for s in key_sentences])
             AddIssueComment(
@@ -151,7 +152,7 @@ def main(summary_path: str, dry_run: bool) -> None:
     import logging
 
     logging.basicConfig(level=logging.INFO)
-    page = Page.from_pipeline_file(summary_path)
+    bb = Blackboard.from_pipeline_file(summary_path)
 
     storage = PersonalStorage()
 
@@ -170,6 +171,10 @@ def main(summary_path: str, dry_run: bool) -> None:
                 )
             )
 
-        storage.add_article(page)
+        storage.add_article(bb)
 
     logger.info("Done")
+
+
+if __name__ == "__main__":
+    main()
