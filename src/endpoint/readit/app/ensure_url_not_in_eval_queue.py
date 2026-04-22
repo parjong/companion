@@ -26,9 +26,8 @@ class EvalQueue:
 
 
 @click.command()
-# TODO: Rename to input_path in Phase 4
-@click.argument("fetch_result_path")
-def main(fetch_result_path: str) -> None:
+@click.argument("input_path")
+def main(input_path: str) -> None:
     logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())
 
     github_graphql_url = os.environ["GITHUB_GRAPHQL_URL"]
@@ -41,11 +40,10 @@ def main(fetch_result_path: str) -> None:
         )
     )
 
-    # TODO: Rename to bb in Phase 4
-    with open(fetch_result_path, "r") as f:
-        fetch_result = Blackboard.from_pipeline_file(f)
+    with open(input_path, "r") as f:
+        bb = Blackboard.from_pipeline_file(f)
 
-    url_to_check = str(fetch_result.url)
+    url_to_check = str(bb.url)
     logger.info("Checking URL: %s", url_to_check)
 
     queue = EvalQueue(client)
