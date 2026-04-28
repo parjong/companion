@@ -1,5 +1,3 @@
-import click
-
 from gql import Client
 from gql import gql
 from gql.transport.requests import RequestsHTTPTransport as HTTPTransport
@@ -133,21 +131,7 @@ class Queue:
             ).execute(self._client)
 
 
-@click.command()
-@click.option(
-    "--dry-run/--no-dry-run",
-    default=not os.environ.get("CI"),
-    help="Default is True unless CI environment variable is set.",
-)
-@click.argument("summary_path")
-def main(summary_path: str, dry_run: bool) -> None:
-    import logging
-
-    logging.basicConfig(level=logging.INFO)
-    bb = Blackboard.from_pipeline_file(summary_path)
-
-    logger.info("blackboard = '%s'", bb)
-
+def send_to_queue_v2(bb: Blackboard, dry_run: bool) -> None:
     queue = Queue()
 
     with ExitStack() as stack:

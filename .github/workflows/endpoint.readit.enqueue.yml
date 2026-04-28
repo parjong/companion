@@ -51,8 +51,7 @@ jobs:
         run: |
           endpoint-readit-summarize-other -o "$SUMMARY_FILE" "$FETCH_FILE"
           endpoint-readit-add-summary-to-eval-queue "$SUMMARY_FILE"
-          endpoint-readit-send-to-personal "$SUMMARY_FILE"
-          endpoint-readit-send-to-queue-v2 "$SUMMARY_FILE"
+          endpoint-readit-send "$SUMMARY_FILE"
         continue-on-error: true
         # 'continue-on-error' ensures that a failure from one command not to affect the others
       - name: 'Upload artifacts'
