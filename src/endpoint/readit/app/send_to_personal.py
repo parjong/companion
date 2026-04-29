@@ -124,6 +124,7 @@ class PersonalStorage:
             title=title,
             body=body,
         ).execute(self._client)
+        bb.personal_archive.issue_id = issue_resp.id
         bb.personal_archive.issue_url = issue_resp.url
 
     def add_other_article(self, bb: Blackboard):
@@ -137,6 +138,7 @@ class PersonalStorage:
         ).execute(self._client)
 
         issue_id = issue_resp.id
+        bb.personal_archive.issue_id = issue_id
         bb.personal_archive.issue_url = issue_resp.url
 
         # Add key sentences as a comment if available

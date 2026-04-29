@@ -18,6 +18,7 @@ class ArxivMetadata(BaseModel):
 
 
 class PersonalArchiveMetadata(BaseModel):
+    issue_id: str | None = None
     # 'str' is used instead of 'HttpUrl' to avoid the complexity of Pydantic's Url objects
     # (e.g., in logging or f-strings) while still ensuring data integrity
     # through validation during assignment.

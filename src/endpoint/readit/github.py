@@ -218,3 +218,26 @@ class UpdateDateFieldValue:
     def execute(self, client) -> None:
         result = client.execute(self.QUERY, variable_values=self._values)
         logger.debug(result)
+
+
+class AddProjectV2ItemById:
+    # https://docs.github.com/en/graphql/reference/mutations#addprojectv2itembyid
+    QUERY = gql("""
+    mutation ($projectId: ID!, $contentId: ID!) {
+      op: addProjectV2ItemById(input: {
+        projectId: $projectId,
+        contentId: $contentId,
+      }) { item { id } }
+    }
+    """)
+
+    def __init__(self, *, projectId: str, contentId: str):
+        self._values = {
+            "projectId": projectId,
+            "contentId": contentId,
+        }
+
+    def execute(self, client) -> ProjectItemID:
+        result = client.execute(self.QUERY, variable_values=self._values)
+        logger.debug(result)
+        return ProjectItemID(result["op"]["item"]["id"])
