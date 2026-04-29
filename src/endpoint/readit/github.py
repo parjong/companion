@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from gql import gql
 from typing import NewType
 from logging import getLogger
@@ -32,6 +33,18 @@ class AddProjectV2DraftIssue:
         return result["op"]["item"]["id"]
 
 
+@dataclass(frozen=True)
+class CreateIssueResponse:
+    id: str
+    url: str
+
+
+@dataclass(frozen=True)
+class AddIssueCommentResponse:
+    id: str
+    url: str
+
+
 class CreateIssue:
     # https://docs.github.com/en/graphql/reference/mutations#createissue
     QUERY = gql("""
@@ -40,7 +53,7 @@ class CreateIssue:
         repositoryId: $repositoryId,
         title: $title,
         body: $body,
-      }) { issue { id } }
+      }) { issue { id url } }
     }
     """)
 
@@ -51,10 +64,13 @@ class CreateIssue:
             "body": body,
         }
 
-    def execute(self, client) -> str:
+    def execute(self, client) -> CreateIssueResponse:
         result = client.execute(self.QUERY, variable_values=self._values)
         logger.debug(result)
-        return result["op"]["issue"]["id"]
+        return CreateIssueResponse(
+            id=result["op"]["issue"]["id"],
+            url=result["op"]["issue"]["url"],
+        )
 
 
 class AddIssueComment:
@@ -64,7 +80,7 @@ class AddIssueComment:
       op: addComment(input: {
         subjectId: $subjectId,
         body: $body,
-      }) { commentEdge { node { id } } }
+      }) { commentEdge { node { id url } } }
     }
     """)
 
@@ -74,10 +90,13 @@ class AddIssueComment:
             "body": body,
         }
 
-    def execute(self, client) -> str:
+    def execute(self, client) -> AddIssueCommentResponse:
         result = client.execute(self.QUERY, variable_values=self._values)
         logger.debug(result)
-        return result["op"]["commentEdge"]["node"]["id"]
+        return AddIssueCommentResponse(
+            id=result["op"]["commentEdge"]["node"]["id"],
+            url=result["op"]["commentEdge"]["node"]["url"],
+        )
 
 
 class UpdateTextFieldValue:

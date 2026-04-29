@@ -10,21 +10,27 @@ from unittest.mock import patch
 
 from endpoint.readit.core import Blackboard
 from endpoint.readit.github import CreateIssue
+from endpoint.readit.github import CreateIssueResponse
 from endpoint.readit.github import AddIssueComment
+from endpoint.readit.github import AddIssueCommentResponse
 
 logger = getLogger(__name__)
 logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())
 
 
-def mock_create_issue_execute(self, client) -> str:
+def mock_create_issue_execute(self, client) -> CreateIssueResponse:
     title = self._values["title"]
     logger.info(f"  [Dry Run] Would create Issue: '{title}'")
-    return "DUMMY_ISSUE_ID"
+    return CreateIssueResponse(
+        id="DUMMY_ISSUE_ID", url="https://github.com/dummy/issue/1"
+    )
 
 
-def mock_add_issue_comment_execute(self, client) -> str:
+def mock_add_issue_comment_execute(self, client) -> AddIssueCommentResponse:
     logger.info("  [Dry Run] Would add Issue Comment")
-    return "DUMMY_COMMENT_ID"
+    return AddIssueCommentResponse(
+        id="DUMMY_COMMENT_ID", url="https://github.com/dummy/issue/1#issuecomment-1"
+    )
 
 
 def mock_create_discussion_execute(self, client) -> None:
@@ -113,30 +119,35 @@ class PersonalStorage:
         title = f"[{year}] {bb.title}"
         body = "\n".join(lines)
 
-        CreateIssue(
+        issue_resp = CreateIssue(
             repositoryId=self.PAPERS_REPO_ID,
             title=title,
             body=body,
         ).execute(self._client)
+        bb.personal_archive.issue_url = issue_resp.url
 
     def add_other_article(self, bb: Blackboard):
         title = f"[{bb.date}] {bb.title}"
         body = bb.url_as_str()
 
-        issue_id = CreateIssue(
+        issue_resp = CreateIssue(
             repositoryId=self.OTHERS_REPO_ID,
             title=title,
             body=body,
         ).execute(self._client)
 
+        issue_id = issue_resp.id
+        bb.personal_archive.issue_url = issue_resp.url
+
         # Add key sentences as a comment if available
         key_sentences = bb.other.key_sentences if bb.other else []
         if key_sentences:
             comment_body = "\n".join([f"- {s}" for s in key_sentences])
-            AddIssueComment(
+            comment_resp = AddIssueComment(
                 subjectId=issue_id,
                 body=comment_body,
             ).execute(self._client)
+            bb.personal_archive.comment_url = comment_resp.url
 
 
 def send_to_personal(bb: Blackboard, dry_run: bool) -> None:

@@ -4,6 +4,8 @@ from pydantic import BaseModel
 from pydantic import Field
 from pydantic import HttpUrl
 from pydantic import model_validator
+from pydantic import TypeAdapter
+from pydantic import field_validator
 
 
 class OtherMetadata(BaseModel):
@@ -13,6 +15,21 @@ class OtherMetadata(BaseModel):
 class ArxivMetadata(BaseModel):
     summary: str
     year: str
+
+
+class PersonalArchiveMetadata(BaseModel):
+    # 'str' is used instead of 'HttpUrl' to avoid the complexity of Pydantic's Url objects
+    # (e.g., in logging or f-strings) while still ensuring data integrity
+    # through validation during assignment.
+    issue_url: str | None = None
+    comment_url: str | None = None
+
+    @field_validator("issue_url", "comment_url")
+    @classmethod
+    def validate_url(cls, v: str | None) -> str | None:
+        if v is not None:
+            TypeAdapter(HttpUrl).validate_python(v)
+        return v
 
 
 class Blackboard(BaseModel):
@@ -26,6 +43,11 @@ class Blackboard(BaseModel):
 
     arxiv: ArxivMetadata | None = Field(None)
     other: OtherMetadata | None = Field(default_factory=OtherMetadata)
+
+    # Reserved for 'send' step
+    personal_archive: PersonalArchiveMetadata = Field(
+        default_factory=PersonalArchiveMetadata
+    )
 
     @model_validator(mode="after")
     def validate_kind_metadata(self) -> "Blackboard":
