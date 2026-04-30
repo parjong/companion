@@ -1,22 +1,21 @@
 from gql import Client
-from gql import gql
 from gql.transport.requests import RequestsHTTPTransport as HTTPTransport
 
 from logging import getLogger
 import os
 from urllib.parse import urlparse
-from typing import NewType
 
 from contextlib import ExitStack
 from unittest.mock import patch
 
 from endpoint.readit.core import Blackboard
+from endpoint.readit.github import AddProjectV2DraftIssue
 from endpoint.readit.github import AddProjectV2ItemById
+from endpoint.readit.github import ProjectItemID
+from endpoint.readit.github import UpdateTextFieldValue
 
 logger = getLogger(__name__)
 logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())
-
-ProjectItemID = NewType("ProjectItemID", str)
 
 
 def mock_add_project_v2_execute(self, client) -> ProjectItemID:
@@ -34,59 +33,6 @@ def mock_update_text_field_execute(self, client) -> None:
     field_id = self._values["fieldId"]
     value = self._values["value"]
     logger.info(f"  [Dry Run] Would update field '{field_id}' with value: '{value}'")
-
-
-# TODO Remove duplication
-class AddProjectV2DraftIssue:
-    QUERY = gql("""
-    mutation ($projectId: ID!, $title: String!, $body: String!) {
-      op: addProjectV2DraftIssue(input: {
-        projectId: $projectId,
-        title: $title,
-        body: $body,
-      }) { item: projectItem { id } }
-    }
-    """)
-
-    def __init__(self, *, projectId: str, title: str, body: str):
-        self._values = {
-            "projectId": projectId,
-            "title": title,
-            "body": body,
-        }
-
-    def execute(self, client) -> ProjectItemID:
-        result = client.execute(self.QUERY, variable_values=self._values)
-        logger.debug(result)
-        return result["op"]["item"]["id"]
-
-
-class UpdateTextFieldValue:
-    QUERY = gql("""
-    mutation ($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: String!) {
-      updateProjectV2ItemFieldValue(input: {
-        projectId: $projectId,
-        itemId: $itemId,
-        fieldId: $fieldId,
-        value: { text: $value }
-      }) { item: projectV2Item { id } }
-    }
-    """)
-
-    def __init__(
-        self, *, projectId: str, itemId: ProjectItemID, fieldId: str, value: str
-    ):
-        self._values = {
-            "projectId": projectId,
-            "itemId": str(itemId),
-            "fieldId": fieldId,
-            "value": value,
-        }
-
-    def execute(self, client) -> ProjectItemID:
-        result = client.execute(self.QUERY, variable_values=self._values)
-        logger.debug(result)
-        pass
 
 
 class Queue:
