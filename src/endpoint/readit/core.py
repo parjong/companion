@@ -18,11 +18,13 @@ class ArxivMetadata(BaseModel):
 
 
 class PersonalArchiveMetadata(BaseModel):
+    # TODO: Rename issue_id to issue_oid and comment_id to comment_oid for consistency with GitHub terminology
     issue_id: str | None = None
     # 'str' is used instead of 'HttpUrl' to avoid the complexity of Pydantic's Url objects
     # (e.g., in logging or f-strings) while still ensuring data integrity
     # through validation during assignment.
     issue_url: str | None = None
+    comment_id: str | None = None
     comment_url: str | None = None
 
     @field_validator("issue_url", "comment_url")

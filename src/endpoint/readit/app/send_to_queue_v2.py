@@ -49,6 +49,7 @@ class Queue:
 
     OTHER_ISSUE_DATE_FIELD_ID = "PVTF_lAHOAOPA3c4BWG6ZzhRdy20"
     OTHER_KEY_SENTENCES_URL_FIELD_ID = "PVTF_lAHOAOPA3c4BWG6ZzhRdy4E"
+    OTHER_KEY_SENTENCES_ID_FIELD_ID = "PVTF_lAHOAOPA3c4BWG6ZzhSI5iA"
     OTHER_URL_FIELD_ID = "PVTF_lAHOAOPA3c4BWG6ZzhReQy0"
 
     def __init__(self):
@@ -79,6 +80,13 @@ class Queue:
         date = bb.date if bb.date else "????/??/??"
         title = f"[{date}] {bb.title}"
         body = bb.url_as_str()
+
+        # Enforce that key sentences comment has been created
+        comment_id = bb.personal_archive.comment_id
+        if not comment_id:
+            raise ValueError(
+                f"comment_id is required for kind 'other'. Blackboard: {bb.url_as_str()}"
+            )
 
         # Reuse existing issue if already created by personal archive, fallback to Draft Issue
         issue_id = bb.personal_archive.issue_id
@@ -115,6 +123,13 @@ class Queue:
                 fieldId=self.OTHER_KEY_SENTENCES_URL_FIELD_ID,
                 value=str(summary_url),
             ).execute(self._client)
+
+        UpdateTextFieldValue(
+            projectId=self.OTHER_PROJECT_ID,
+            itemId=item_id,
+            fieldId=self.OTHER_KEY_SENTENCES_ID_FIELD_ID,
+            value=comment_id,
+        ).execute(self._client)
 
     def _add_arxiv(self, bb: Blackboard):
         # TODO: Move arxiv_id extraction to Blackboard model or fetcher in the future
