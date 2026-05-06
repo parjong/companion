@@ -1,11 +1,13 @@
 import json
 import os
-import urllib.request
-from urllib.parse import urlparse, urlunparse
+import time
 from logging import getLogger
+from urllib.parse import urlparse
+from urllib.parse import urlunparse
 
 import click
 import trafilatura
+from curl_cffi import requests
 
 from endpoint.readit.core import Blackboard
 
@@ -21,18 +23,41 @@ def normalize_url(url: str) -> str:
     return urlunparse(parsed_url)
 
 
+def fetch_with_retry(url: str, max_retries: int = 3) -> tuple[bytes, str]:
+    """Fetch URL with curl_cffi and exponential backoff retry."""
+    with requests.Session() as s:
+        for attempt in range(max_retries):
+            try:
+                # Use a browser impersonation to avoid bot detection
+                response = s.get(url, impersonate="chrome110", timeout=30)
+                response.raise_for_status()
+                return response.content, response.url
+            except Exception as e:
+                logger.warning(
+                    "Attempt %d failed to fetch '%s': %s", attempt + 1, url, e
+                )
+                if attempt < max_retries - 1:
+                    wait_time = 2**attempt
+                    logger.info("Retrying in %d seconds...", wait_time)
+                    time.sleep(wait_time)
+                else:
+                    raise e
+    raise RuntimeError(f"Failed to fetch '{url}' after {max_retries} attempts")
+
+
 @click.command()
 @click.option("-o", "output_path", required=True)
 @click.argument("url")
 def main(output_path: str, url: str) -> None:
     logger.info("Fetching '%s'", url)
 
-    # Fetch the URL
-    with urllib.request.urlopen(url, timeout=60) as response:
-        page_html_bytes = response.read()
+    try:
+        page_html_bytes, final_url = fetch_with_retry(url)
         # We need the HTML as a string for the output JSON
         page_html = page_html_bytes.decode("utf-8", errors="replace")
-        final_url = response.geturl()
+    except Exception as e:
+        logger.error("All attempts failed for '%s': %s", url, e)
+        raise click.ClickException(f"Failed to fetch {url}: {e}")
 
     # Normalize the URL
     normalized_url = normalize_url(final_url)
