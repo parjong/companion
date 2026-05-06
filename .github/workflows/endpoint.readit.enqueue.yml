@@ -16,6 +16,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       INPUT_URL: ${{ github.event.inputs.url }}
+
+      # Intermediate files
+      FETCH_FILE: '/tmp/fetch.json'
+      SUMMARY_FILE: '/tmp/summary.json'
     steps:
       - name: 'Show input url'
         run: echo "$INPUT_URL"
@@ -30,38 +34,37 @@ jobs:
       - name: 'Install server'
         run: uv tool install --force ./
 
-        # TODO Reduce duplication
-      - name: 'Fetch'
-        env:
-          OWNER_TOKEN: ${{ secrets.TOKEN }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          # This variable is used during module loading
-          # TODO Find a way to remove this redundant "GEMINI_API_KEY"
-          FETCH_FILE: '/tmp/fetch.json'
-        run: |
-          endpoint-readit-fetch -o "$FETCH_FILE" "$INPUT_URL"
-          endpoint-readit-ensure-URL-not-in-eval-queue "$FETCH_FILE"
+      - name: 'Fetch content'
+        run: endpoint-readit-fetch -o "$FETCH_FILE" "$INPUT_URL"
 
-      - name: 'Enqueue'
+      - name: 'Ensure URL not in eval queue'
         env:
           OWNER_TOKEN: ${{ secrets.TOKEN }}
+        run: endpoint-readit-ensure-URL-not-in-eval-queue "$FETCH_FILE"
+
+      - name: 'Summarize content'
+        env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          FETCH_FILE: '/tmp/fetch.json'
-          SUMMARY_FILE: '/tmp/summary.json'
-        run: |
-          endpoint-readit-summarize-other -o "$SUMMARY_FILE" "$FETCH_FILE"
-          endpoint-readit-add-summary-to-eval-queue "$SUMMARY_FILE"
-          endpoint-readit-send "$SUMMARY_FILE"
-        continue-on-error: true
-        # 'continue-on-error' ensures that a failure from one command not to affect the others
+        run: endpoint-readit-summarize-other -o "$SUMMARY_FILE" "$FETCH_FILE"
+
+      - name: 'Add summary to eval queue'
+        env:
+          OWNER_TOKEN: ${{ secrets.TOKEN }}
+        run: endpoint-readit-add-summary-to-eval-queue "$SUMMARY_FILE"
+
+      - name: 'Send summary'
+        env:
+          OWNER_TOKEN: ${{ secrets.TOKEN }}
+        run: endpoint-readit-send "$SUMMARY_FILE"
+
       - name: 'Upload artifacts'
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: readit-artifacts
           path: |
-            /tmp/fetch.json
-            /tmp/summary.json
+            ${{ env.FETCH_FILE }}
+            ${{ env.SUMMARY_FILE }}
           if-no-files-found: ignore
     # steps/ END
   # run/ END
