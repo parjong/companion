@@ -149,6 +149,7 @@ class PersonalStorage:
                 subjectId=issue_id,
                 body=comment_body,
             ).execute(self._client)
+            bb.personal_archive.comment_id = comment_resp.id
             bb.personal_archive.comment_url = comment_resp.url
 
 
