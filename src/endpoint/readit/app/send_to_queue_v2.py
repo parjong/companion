@@ -82,17 +82,17 @@ class Queue:
         body = bb.url_as_str()
 
         # Enforce that key sentences comment has been created
-        comment_id = bb.personal_archive.comment_id
-        if not comment_id:
+        comment_oid = bb.personal_archive.comment_oid
+        if not comment_oid:
             raise ValueError(
-                f"comment_id is required for kind 'other'. Blackboard: {bb.url_as_str()}"
+                f"comment_oid is required for kind 'other'. Blackboard: {bb.url_as_str()}"
             )
 
         # Reuse existing issue if already created by personal archive, fallback to Draft Issue
-        issue_id = bb.personal_archive.issue_id
-        if issue_id:
+        issue_oid = bb.personal_archive.issue_oid
+        if issue_oid:
             item_id = AddProjectV2ItemById(
-                projectId=self.OTHER_PROJECT_ID, contentId=issue_id
+                projectId=self.OTHER_PROJECT_ID, contentId=issue_oid
             ).execute(self._client)
         else:
             item_id = AddProjectV2DraftIssue(
@@ -128,7 +128,7 @@ class Queue:
             projectId=self.OTHER_PROJECT_ID,
             itemId=item_id,
             fieldId=self.OTHER_KEY_SENTENCES_ID_FIELD_ID,
-            value=comment_id,
+            value=comment_oid,
         ).execute(self._client)
 
     def _add_arxiv(self, bb: Blackboard):
@@ -144,10 +144,10 @@ class Queue:
         body = "\n".join(lines)
 
         # Reuse existing issue if already created by personal archive, fallback to Draft Issue
-        issue_id = bb.personal_archive.issue_id
-        if issue_id:
+        issue_oid = bb.personal_archive.issue_oid
+        if issue_oid:
             item_id = AddProjectV2ItemById(
-                projectId=self.ARXIV_PROJECT_ID, contentId=issue_id
+                projectId=self.ARXIV_PROJECT_ID, contentId=issue_oid
             ).execute(self._client)
         else:
             item_id = AddProjectV2DraftIssue(

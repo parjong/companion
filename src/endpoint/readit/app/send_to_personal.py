@@ -124,7 +124,7 @@ class PersonalStorage:
             title=title,
             body=body,
         ).execute(self._client)
-        bb.personal_archive.issue_id = issue_resp.id
+        bb.personal_archive.issue_oid = issue_resp.id
         bb.personal_archive.issue_url = issue_resp.url
 
     def add_other_article(self, bb: Blackboard):
@@ -137,8 +137,8 @@ class PersonalStorage:
             body=body,
         ).execute(self._client)
 
-        issue_id = issue_resp.id
-        bb.personal_archive.issue_id = issue_id
+        issue_oid = issue_resp.id
+        bb.personal_archive.issue_oid = issue_oid
         bb.personal_archive.issue_url = issue_resp.url
 
         # Add key sentences as a comment if available
@@ -146,10 +146,10 @@ class PersonalStorage:
         if key_sentences:
             comment_body = "\n".join([f"- {s}" for s in key_sentences])
             comment_resp = AddIssueComment(
-                subjectId=issue_id,
+                subjectId=issue_oid,
                 body=comment_body,
             ).execute(self._client)
-            bb.personal_archive.comment_id = comment_resp.id
+            bb.personal_archive.comment_oid = comment_resp.id
             bb.personal_archive.comment_url = comment_resp.url
 
 
