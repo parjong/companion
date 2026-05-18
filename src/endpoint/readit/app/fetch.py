@@ -16,8 +16,11 @@ logger = getLogger(__name__)
 logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())
 
 
-def preprocess_html(html_bytes: bytes) -> bytes:
-    """Preprocess HTML to preserve list item separation and newlines in trafilatura."""
+def preprocess_html(html_bytes: bytes, url: str) -> bytes:
+    """Preprocess HTML to preserve list item separation and newlines in trafilatura specifically for Geek News."""
+    if "news.hada.io" not in url:
+        return html_bytes
+
     try:
         html = html_bytes.decode("utf-8", errors="replace")
         # Replace list items with paragraph tags to preserve list item separation and newlines
@@ -77,8 +80,8 @@ def main(output_path: str, url: str) -> None:
     # Normalize the URL
     normalized_url = normalize_url(final_url)
 
-    # Preprocess html to preserve list items and newlines
-    preprocessed_bytes = preprocess_html(page_html_bytes)
+    # Preprocess html to preserve list items and newlines specifically for Geek News
+    preprocessed_bytes = preprocess_html(page_html_bytes, final_url)
 
     # Extract content using trafilatura
     # output_format="json" with with_metadata=True gives a JSON string with metadata
@@ -92,8 +95,13 @@ def main(output_path: str, url: str) -> None:
             preprocessed_bytes,
             include_comments=False,
             include_formatting=True,
+            include_links=True,
         )
         if formatted_text:
+            # Strip comments section from GeekNews
+            for delimiter in ["## 댓글과 토론", "## 댓글"]:
+                if delimiter in formatted_text:
+                    formatted_text = formatted_text.split(delimiter)[0].strip()
             trafilatura_data["text"] = formatted_text
     else:
         trafilatura_data = {}
