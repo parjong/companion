@@ -114,10 +114,26 @@ class GeekNewsProcessor(BaseProcessor):
         return text
 
 
+class LinkedInProcessor(BaseProcessor):
+    """LinkedIn specific HTML and text pre/postprocessor."""
+
+    def postprocess_text(self, text: str) -> str:
+        # Match markdown links containing comments or comment_actor in their target and strip everything from there
+        pattern = re.compile(
+            r"\[[^\]]+\]\([^\)]*(?:comment_actor|see-more-comments)[^\)]*\)"
+        )
+        match = pattern.search(text)
+        if match:
+            text = text[: match.start()].strip()
+        return text
+
+
 def get_processor(url: str) -> BaseProcessor:
     """Return the appropriate HTML/text processor for the given URL."""
     if "news.hada.io" in url:
         return GeekNewsProcessor()
+    if "linkedin.com" in url:
+        return LinkedInProcessor()
     return DefaultProcessor()
 
 
