@@ -33,6 +33,75 @@ def preprocess_html(html_bytes: bytes, url: str) -> bytes:
         return html_bytes
 
 
+def merge_link_and_header(text: str, url: str) -> str:
+    """If Geek News, merge the top link and the title header into a single unified clickable header."""
+    if "news.hada.io" not in url:
+        return text
+
+    link_match = re.search(r"^\[([^\]]+)\]\((https?://[^\)]+)\)", text.strip())
+    if link_match:
+        link_text, link_url = link_match.groups()
+        header_match = re.search(r"#\s+([^\n]+)", text)
+        if header_match:
+            header_text = header_match.group(1).strip()
+            # Remove the top link and its trailing spaces/newlines
+            cleaned_text = re.sub(r"^\[[^\]]+\]\([^\)]+\)\s*", "", text.strip())
+            # Replace '# Title' with '# [Title](URL)'
+            return re.sub(
+                r"#\s+" + re.escape(header_text),
+                f"# [{header_text}]({link_url})",
+                cleaned_text,
+                count=1,
+            )
+    return text
+
+
+def postprocess_text(text: str, url: str) -> str:
+    """Postprocess the extracted markdown text based on URL specific rules."""
+    if "news.hada.io" in url:
+        # Strip comments section from GeekNews
+        for delimiter in ["## 댓글과 토론", "## 댓글"]:
+            if delimiter in text:
+                text = text.split(delimiter)[0].strip()
+        # Merge the top link and title header for GeekNews into a single unified clickable header
+        text = merge_link_and_header(text, url)
+        # Merge inline code backticks followed by newlines and a lowercase/Korean character
+        pattern_backtick = r"`([^`\n]+)`\s*\n+\s*([가-힣a-z,.?!~])"
+        text = re.sub(pattern_backtick, r"`\1` \2", text)
+        # Merge general accidental newlines inside sentences
+        lines = text.splitlines()
+        merged_lines = []
+        for line in lines:
+            if merged_lines and merged_lines[-1].strip() and line.strip():
+                prev_line = merged_lines[-1].rstrip()
+                curr_line = line.strip()
+                if not prev_line.endswith(
+                    (".", "!", "?", ":", "#", "-", "*")
+                ) and re.match(r"^[가-힣a-z]", curr_line):
+                    merged_lines[-1] = prev_line + " " + curr_line
+                    continue
+            merged_lines.append(line)
+        text = "\n".join(merged_lines)
+        # Remove empty lines between consecutive list items to keep list blocks compact
+        lines = text.splitlines()
+        new_lines = []
+        for i, line in enumerate(lines):
+            if line.strip().startswith("- ") and i > 0:
+                last_non_empty = None
+                for prev in reversed(new_lines):
+                    if prev.strip():
+                        last_non_empty = prev.strip()
+                        break
+                if last_non_empty and (
+                    last_non_empty.startswith("- ") or last_non_empty.startswith("* ")
+                ):
+                    while new_lines and not new_lines[-1].strip():
+                        new_lines.pop()
+            new_lines.append(line)
+        text = "\n".join(new_lines)
+    return text
+
+
 def normalize_url(url: str) -> str:
     parsed_url = urlparse(url)
     if parsed_url.netloc == "www.linkedin.com":
@@ -98,10 +167,8 @@ def main(output_path: str, url: str) -> None:
             include_links=True,
         )
         if formatted_text:
-            # Strip comments section from GeekNews
-            for delimiter in ["## 댓글과 토론", "## 댓글"]:
-                if delimiter in formatted_text:
-                    formatted_text = formatted_text.split(delimiter)[0].strip()
+            # Postprocess text based on domain specific rules
+            formatted_text = postprocess_text(formatted_text, final_url)
             trafilatura_data["text"] = formatted_text
     else:
         trafilatura_data = {}
