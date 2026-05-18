@@ -25,8 +25,10 @@ class PersonalArchiveMetadata(BaseModel):
     issue_url: str | None = None
     comment_oid: str | None = None
     comment_url: str | None = None
+    content_comment_oid: str | None = None
+    content_comment_url: str | None = None
 
-    @field_validator("issue_url", "comment_url")
+    @field_validator("issue_url", "comment_url", "content_comment_url")
     @classmethod
     def validate_url(cls, v: str | None) -> str | None:
         if v is not None:
