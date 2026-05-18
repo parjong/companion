@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import time
 from logging import getLogger
 from urllib.parse import urlparse
@@ -13,6 +14,20 @@ from endpoint.readit.core import Blackboard
 
 logger = getLogger(__name__)
 logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())
+
+
+def preprocess_html(html_bytes: bytes) -> bytes:
+    """Preprocess HTML to preserve list item separation and newlines in trafilatura."""
+    try:
+        html = html_bytes.decode("utf-8", errors="replace")
+        # Replace list items with paragraph tags to preserve list item separation and newlines
+        html = re.sub(r"<li>", "<p>- ", html, flags=re.IGNORECASE)
+        html = re.sub(r"</li>", "</p>", html, flags=re.IGNORECASE)
+        # Replace br tags with paragraph boundaries to preserve single line breaks
+        html = re.sub(r"<br\s*/?>", "</p><p>", html, flags=re.IGNORECASE)
+        return html.encode("utf-8")
+    except Exception:
+        return html_bytes
 
 
 def normalize_url(url: str) -> str:
@@ -62,13 +77,24 @@ def main(output_path: str, url: str) -> None:
     # Normalize the URL
     normalized_url = normalize_url(final_url)
 
+    # Preprocess html to preserve list items and newlines
+    preprocessed_bytes = preprocess_html(page_html_bytes)
+
     # Extract content using trafilatura
     # output_format="json" with with_metadata=True gives a JSON string with metadata
     trafilatura_json_str = trafilatura.extract(
-        page_html_bytes, output_format="json", with_metadata=True
+        preprocessed_bytes, output_format="json", with_metadata=True
     )
     if trafilatura_json_str:
         trafilatura_data = json.loads(trafilatura_json_str)
+        # Extract content with markdown formatting and without comments
+        formatted_text = trafilatura.extract(
+            preprocessed_bytes,
+            include_comments=False,
+            include_formatting=True,
+        )
+        if formatted_text:
+            trafilatura_data["text"] = formatted_text
     else:
         trafilatura_data = {}
 
