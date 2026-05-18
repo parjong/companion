@@ -78,10 +78,12 @@ def test_send_to_personal_other_article_truncated(monkeypatch):
     # There should be exactly 1 comment since key_sentences is empty, which is the original content comment
     assert len(original_execute) == 1
     comment_body = original_execute[0]
-    assert comment_body.startswith("## Original Content\n\n")
+    assert comment_body.startswith("<!-- type: original_content -->\n")
     assert "truncated because it exceeded the character limit" in comment_body
     # The actual truncated body should be exactly 60,000 "A"s
-    truncated_content = comment_body.split("\n\n")[1]
+    truncated_content = comment_body.replace(
+        "<!-- type: original_content -->\n", ""
+    ).split("\n\n")[0]
     assert len(truncated_content) == 60000
     assert bb.personal_archive.content_comment_oid == "TRUNCATED_COMMENT_ID"
     assert (
