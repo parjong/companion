@@ -16,58 +16,69 @@ logger = getLogger(__name__)
 logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())
 
 
-def preprocess_html(html_bytes: bytes, url: str) -> bytes:
-    """Preprocess HTML to preserve list item separation and newlines in trafilatura specifically for Geek News."""
-    if "news.hada.io" not in url:
+class BaseProcessor:
+    """Base class for HTML and text pre/postprocessing."""
+
+    def preprocess_html(self, html_bytes: bytes) -> bytes:
         return html_bytes
 
-    try:
-        html = html_bytes.decode("utf-8", errors="replace")
-        # Replace list items with paragraph tags to preserve list item separation and newlines
-        html = re.sub(r"<li>", "<p>- ", html, flags=re.IGNORECASE)
-        html = re.sub(r"</li>", "</p>", html, flags=re.IGNORECASE)
-        # Replace br tags with paragraph boundaries to preserve single line breaks
-        html = re.sub(r"<br\s*/?>", "</p><p>", html, flags=re.IGNORECASE)
-        return html.encode("utf-8")
-    except Exception:
-        return html_bytes
-
-
-def merge_link_and_header(text: str, url: str) -> str:
-    """If Geek News, merge the top link and the title header into a single unified clickable header."""
-    if "news.hada.io" not in url:
+    def postprocess_text(self, text: str) -> str:
         return text
 
-    link_match = re.search(r"^\[([^\]]+)\]\((https?://[^\)]+)\)", text.strip())
-    if link_match:
-        link_text, link_url = link_match.groups()
-        header_match = re.search(r"#\s+([^\n]+)", text)
-        if header_match:
-            header_text = header_match.group(1).strip()
-            # Remove the top link and its trailing spaces/newlines
-            cleaned_text = re.sub(r"^\[[^\]]+\]\([^\)]+\)\s*", "", text.strip())
-            # Replace '# Title' with '# [Title](URL)'
-            return re.sub(
-                r"#\s+" + re.escape(header_text),
-                f"# [{header_text}]({link_url})",
-                cleaned_text,
-                count=1,
-            )
-    return text
+
+class DefaultProcessor(BaseProcessor):
+    """Default processor that performs no modifications."""
+
+    pass
 
 
-def postprocess_text(text: str, url: str) -> str:
-    """Postprocess the extracted markdown text based on URL specific rules."""
-    if "news.hada.io" in url:
+class GeekNewsProcessor(BaseProcessor):
+    """Geek News specific HTML and text pre/postprocessor."""
+
+    def preprocess_html(self, html_bytes: bytes) -> bytes:
+        try:
+            html = html_bytes.decode("utf-8", errors="replace")
+            # Replace list items with paragraph tags to preserve list item separation and newlines
+            html = re.sub(r"<li>", "<p>- ", html, flags=re.IGNORECASE)
+            html = re.sub(r"</li>", "</p>", html, flags=re.IGNORECASE)
+            # Replace br tags with paragraph boundaries to preserve single line breaks
+            html = re.sub(r"<br\s*/?>", "</p><p>", html, flags=re.IGNORECASE)
+            return html.encode("utf-8")
+        except Exception:
+            return html_bytes
+
+    def _merge_link_and_header(self, text: str) -> str:
+        """Merge the top link and the title header into a single unified clickable header."""
+        link_match = re.search(r"^\[([^\]]+)\]\((https?://[^\)]+)\)", text.strip())
+        if link_match:
+            link_text, link_url = link_match.groups()
+            header_match = re.search(r"#\s+([^\n]+)", text)
+            if header_match:
+                header_text = header_match.group(1).strip()
+                # Remove the top link and its trailing spaces/newlines
+                cleaned_text = re.sub(r"^\[[^\]]+\]\([^\)]+\)\s*", "", text.strip())
+                # Replace '# Title' with '# [Title](URL)'
+                return re.sub(
+                    r"#\s+" + re.escape(header_text),
+                    f"# [{header_text}]({link_url})",
+                    cleaned_text,
+                    count=1,
+                )
+        return text
+
+    def postprocess_text(self, text: str) -> str:
         # Strip comments section from GeekNews
         for delimiter in ["## 댓글과 토론", "## 댓글"]:
             if delimiter in text:
                 text = text.split(delimiter)[0].strip()
+
         # Merge the top link and title header for GeekNews into a single unified clickable header
-        text = merge_link_and_header(text, url)
+        text = self._merge_link_and_header(text)
+
         # Merge inline code backticks followed by newlines and a lowercase/Korean character
         pattern_backtick = r"`([^`\n]+)`\s*\n+\s*([가-힣a-z,.?!~])"
         text = re.sub(pattern_backtick, r"`\1` \2", text)
+
         # Merge general accidental newlines inside sentences
         lines = text.splitlines()
         merged_lines = []
@@ -82,6 +93,7 @@ def postprocess_text(text: str, url: str) -> str:
                     continue
             merged_lines.append(line)
         text = "\n".join(merged_lines)
+
         # Remove empty lines between consecutive list items to keep list blocks compact
         lines = text.splitlines()
         new_lines = []
@@ -99,7 +111,14 @@ def postprocess_text(text: str, url: str) -> str:
                         new_lines.pop()
             new_lines.append(line)
         text = "\n".join(new_lines)
-    return text
+        return text
+
+
+def get_processor(url: str) -> BaseProcessor:
+    """Return the appropriate HTML/text processor for the given URL."""
+    if "news.hada.io" in url:
+        return GeekNewsProcessor()
+    return DefaultProcessor()
 
 
 def normalize_url(url: str) -> str:
@@ -149,8 +168,11 @@ def main(output_path: str, url: str) -> None:
     # Normalize the URL
     normalized_url = normalize_url(final_url)
 
+    # Get the appropriate HTML/text processor based on the URL
+    processor = get_processor(final_url)
+
     # Preprocess html to preserve list items and newlines specifically for Geek News
-    preprocessed_bytes = preprocess_html(page_html_bytes, final_url)
+    preprocessed_bytes = processor.preprocess_html(page_html_bytes)
 
     # Extract content using trafilatura
     # output_format="json" with with_metadata=True gives a JSON string with metadata
@@ -168,7 +190,7 @@ def main(output_path: str, url: str) -> None:
         )
         if formatted_text:
             # Postprocess text based on domain specific rules
-            formatted_text = postprocess_text(formatted_text, final_url)
+            formatted_text = processor.postprocess_text(formatted_text)
             trafilatura_data["text"] = formatted_text
     else:
         trafilatura_data = {}
