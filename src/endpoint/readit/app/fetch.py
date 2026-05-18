@@ -125,6 +125,11 @@ class LinkedInProcessor(BaseProcessor):
         match = pattern.search(text)
         if match:
             text = text[: match.start()].strip()
+        # Remove lines that contain only 3 or more repetitions of =, -, _, *, or spaces/tabs
+        pattern_separator = re.compile(
+            r"^\s*(?:={3,}|-{3,}|_{3,}|\*{3,})\s*$", re.MULTILINE
+        )
+        text = pattern_separator.sub("", text)
         return text
 
 
