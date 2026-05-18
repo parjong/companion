@@ -8,6 +8,7 @@ from urllib.parse import urlunparse
 
 import click
 import trafilatura
+from bs4 import BeautifulSoup, NavigableString
 from curl_cffi import requests
 
 from endpoint.readit.core import Blackboard
@@ -23,6 +24,24 @@ class BaseProcessor:
         return html_bytes
 
     def postprocess_text(self, text: str) -> str:
+        # Merge inline code backticks followed by newlines and a lowercase/Korean character
+        pattern_backtick = r"`([^`\n]+)`\s*\n+\s*([가-힣a-z,.?!~])"
+        text = re.sub(pattern_backtick, r"`\1` \2", text)
+
+        # Merge general accidental newlines inside sentences
+        lines = text.splitlines()
+        merged_lines = []
+        for line in lines:
+            if merged_lines and merged_lines[-1].strip() and line.strip():
+                prev_line = merged_lines[-1].rstrip()
+                curr_line = line.strip()
+                if not prev_line.endswith(
+                    (".", "!", "?", ":", "#", "-", "*")
+                ) and re.match(r"^[가-힣a-z]", curr_line):
+                    merged_lines[-1] = prev_line + " " + curr_line
+                    continue
+            merged_lines.append(line)
+        text = "\n".join(merged_lines)
         return text
 
 
@@ -75,24 +94,8 @@ class GeekNewsProcessor(BaseProcessor):
         # Merge the top link and title header for GeekNews into a single unified clickable header
         text = self._merge_link_and_header(text)
 
-        # Merge inline code backticks followed by newlines and a lowercase/Korean character
-        pattern_backtick = r"`([^`\n]+)`\s*\n+\s*([가-힣a-z,.?!~])"
-        text = re.sub(pattern_backtick, r"`\1` \2", text)
-
-        # Merge general accidental newlines inside sentences
-        lines = text.splitlines()
-        merged_lines = []
-        for line in lines:
-            if merged_lines and merged_lines[-1].strip() and line.strip():
-                prev_line = merged_lines[-1].rstrip()
-                curr_line = line.strip()
-                if not prev_line.endswith(
-                    (".", "!", "?", ":", "#", "-", "*")
-                ) and re.match(r"^[가-힣a-z]", curr_line):
-                    merged_lines[-1] = prev_line + " " + curr_line
-                    continue
-            merged_lines.append(line)
-        text = "\n".join(merged_lines)
+        # Run parent class postprocessing (backtick and general sentence merging)
+        text = super().postprocess_text(text)
 
         # Remove empty lines between consecutive list items to keep list blocks compact
         lines = text.splitlines()
@@ -111,11 +114,38 @@ class GeekNewsProcessor(BaseProcessor):
                         new_lines.pop()
             new_lines.append(line)
         text = "\n".join(new_lines)
+        # Strip empty bullets followed by markdown headings
+        pattern_empty_bullet = re.compile(r"^\s*[-\*\+]\s*\n+\s*(#+)", re.MULTILINE)
+        text = pattern_empty_bullet.sub(r"\1", text)
         return text
 
 
 class LinkedInProcessor(BaseProcessor):
     """LinkedIn specific HTML and text pre/postprocessor."""
+
+    def preprocess_html(self, html_bytes: bytes) -> bytes:
+        try:
+            html = html_bytes.decode("utf-8", errors="replace")
+            soup = BeautifulSoup(html, "html.parser")
+            commentary = soup.find(
+                attrs={"data-test-id": "main-feed-activity-card__commentary"}
+            )
+            if commentary:
+                for text_node in list(commentary.find_all(string=True)):
+                    if "\n" in text_node:
+                        text_str = text_node
+                        parts = text_str.split("\n\n")
+                        new_nodes = []
+                        for idx, part in enumerate(parts):
+                            if part:
+                                clean_part = part.replace("\n", " ")
+                                new_nodes.append(NavigableString(clean_part))
+                            if idx < len(parts) - 1:
+                                new_nodes.append(soup.new_tag("br"))
+                        text_node.replace_with(*new_nodes)
+            return str(soup).encode("utf-8")
+        except Exception:
+            return html_bytes
 
     def postprocess_text(self, text: str) -> str:
         # Match markdown links containing comments or comment_actor in their target and strip everything from there
@@ -130,6 +160,8 @@ class LinkedInProcessor(BaseProcessor):
             r"^\s*(?:={3,}|-{3,}|_{3,}|\*{3,})\s*$", re.MULTILINE
         )
         text = pattern_separator.sub("", text)
+        # Run parent class postprocessing (backtick and general sentence merging)
+        text = super().postprocess_text(text)
         return text
 
 
