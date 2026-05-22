@@ -1,0 +1,28 @@
+name: 'EP/readit/summary_model/update'
+
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: 'Target model name (e.g. gemini-2.5-pro)'
+        required: true
+        type: string
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: 0.9.22
+
+      - name: 'Install tools'
+        run: uv tool install --force ./
+
+      - name: 'Validate & Update READIT_SUMMARY_MODEL Variable'
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OWNER_TOKEN: ${{ secrets.TOKEN }}
+        run: endpoint-readit-update-summary-model "${{ inputs.model }}"
