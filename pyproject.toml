@@ -17,6 +17,7 @@ dependencies = [
 ]
 
 [project.scripts]
+endpoint-readit-update-summary-model = "endpoint.readit.app.update_summary_model:main"
 endpoint-readit-summarize-other = "endpoint.readit.app.summarize_other:main"
 endpoint-readit-send = "endpoint.readit.app.send:main"
 endpoint-readit-add-summary-to-eval-queue = "endpoint.readit.app.add_summary_to_eval_queue:main"

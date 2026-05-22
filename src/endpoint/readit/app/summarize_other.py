@@ -36,9 +36,13 @@ class Summary(BaseModel):
 
 # --- Inference Models & Chains ---
 
-_STRUCTURED_LLM = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash"
-).with_structured_output(Summary)
+
+def get_llm(model_name: str) -> ChatGoogleGenerativeAI:
+    return ChatGoogleGenerativeAI(model=model_name)
+
+
+_MODEL_NAME = os.environ.get("READIT_SUMMARY_MODEL", "gemini-2.5-flash")
+_STRUCTURED_LLM = get_llm(_MODEL_NAME).with_structured_output(Summary)
 
 # Stage 1: Standard Summarization (Cleaned Text)
 _PROMPT = ChatPromptTemplate.from_template("""

@@ -45,6 +45,7 @@ jobs:
       - name: 'Summarize content'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          READIT_SUMMARY_MODEL: ${{ vars.READIT_SUMMARY_MODEL }}
         run: endpoint-readit-summarize-other -o "$SUMMARY_FILE" "$FETCH_FILE"
 
       - name: 'Add summary to eval queue'
