@@ -16,6 +16,7 @@ from pydantic import Field
 from endpoint.readit.core import Blackboard
 from endpoint.readit.core import ArxivMetadata
 from endpoint.readit.core import OtherMetadata
+from endpoint.readit.core import Step
 
 
 logger = getLogger(__name__)
@@ -138,6 +139,34 @@ def load_blackboard(f: IO) -> Blackboard:
     return Blackboard.from_pipeline_file(f)
 
 
+class SummarizeStep(Step):
+    """Pipeline step that analyzes web pages (or arxiv papers) and extracts summary metadata."""
+
+    def __call__(self, bb: Blackboard) -> Blackboard:
+        url = str(bb.url)
+        parsed_url = urlparse(url)
+
+        if parsed_url.netloc == "arxiv.org":
+            arxiv_id = parsed_url.path.split("/")[-1]
+            search = arxiv.Search(id_list=[arxiv_id])
+            results = list(search.results())
+            paper = results[0]
+
+            return bb.model_copy(
+                update={
+                    "title": paper.title,
+                    "date": paper.published.strftime("%Y/%m/%d"),
+                    "kind": "arxiv",
+                    "arxiv": ArxivMetadata(
+                        summary=paper.summary,
+                        year=str(paper.published.year),
+                    ),
+                }
+            )
+
+        return page_of_(bb)
+
+
 @click.command()
 @click.option("-o", "output_path", required=True)
 @click.argument("input_path")
@@ -147,28 +176,8 @@ def main(output_path: str, input_path: str) -> None:
     with open(input_path, "r", encoding="utf-8") as f:
         bb = load_blackboard(f)
 
-    url = str(bb.url)
-    parsed_url = urlparse(url)
-
-    if parsed_url.netloc == "arxiv.org":
-        arxiv_id = parsed_url.path.split("/")[-1]
-        search = arxiv.Search(id_list=[arxiv_id])
-        results = list(search.results())
-        paper = results[0]
-
-        bb = bb.model_copy(
-            update={
-                "title": paper.title,
-                "date": paper.published.strftime("%Y/%m/%d"),
-                "kind": "arxiv",
-                "arxiv": ArxivMetadata(
-                    summary=paper.summary,
-                    year=str(paper.published.year),
-                ),
-            }
-        )
-    else:
-        bb = page_of_(bb)
+    summarize_step = SummarizeStep()
+    bb = summarize_step(bb)
 
     logger.info("Result: '%s'", bb.model_dump(exclude={"html", "trafilatura"}))
 

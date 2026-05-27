@@ -8,6 +8,7 @@ from logging import getLogger
 import os
 
 from endpoint.readit.core import Blackboard
+from endpoint.readit.core import Step
 from endpoint.readit.github import ProjectItemID
 from endpoint.readit.github import AddProjectV2DraftIssue
 from endpoint.readit.github import UpdateTextFieldValue
@@ -66,6 +67,18 @@ class EvalQueue:
         ).execute(self._client)
 
 
+class AddQueueStep(Step):
+    """Pipeline step that adds the Blackboard summary into the GitHub Project evaluation queue."""
+
+    def __init__(self, client: Client):
+        self._client = client
+
+    def __call__(self, bb: Blackboard) -> Blackboard:
+        queue = EvalQueue(self._client)
+        queue.add(bb)
+        return bb
+
+
 @click.command()
 @click.argument("summary_path")
 def main(summary_path: str) -> None:
@@ -86,9 +99,8 @@ def main(summary_path: str) -> None:
 
     logger.info("blackboard = '%s'", bb)
 
-    queue = EvalQueue(client)
-
-    queue.add(bb)
+    add_queue_step = AddQueueStep(client)
+    add_queue_step(bb)
 
     logger.info("Done")
 
