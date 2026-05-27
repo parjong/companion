@@ -1,3 +1,5 @@
+from abc import ABC
+from abc import abstractmethod
 from typing import Any
 
 from pydantic import BaseModel
@@ -73,3 +75,19 @@ class Blackboard(BaseModel):
             data = json.loads(Path(path_or_file).read_text())
 
         return cls.model_validate(data)
+
+
+class Step(ABC):
+    """Base class for all readit pipeline steps."""
+
+    @abstractmethod
+    def __call__(self, bb: Blackboard) -> Blackboard:
+        """Executes the pipeline step.
+
+        Args:
+            bb: The current blackboard state.
+
+        Returns:
+            The updated blackboard state.
+        """
+        pass
