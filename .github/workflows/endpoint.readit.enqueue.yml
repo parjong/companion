@@ -34,29 +34,13 @@ jobs:
       - name: 'Install server'
         run: uv tool install --force ./
 
-      - name: 'Fetch content'
-        run: endpoint-readit-fetch -o "$FETCH_FILE" "$INPUT_URL"
-
-      - name: 'Ensure URL not in eval queue'
+      - name: 'Run enqueue pipeline'
         env:
           OWNER_TOKEN: ${{ secrets.TOKEN }}
-        run: endpoint-readit-ensure-URL-not-in-eval-queue "$FETCH_FILE"
-
-      - name: 'Summarize content'
-        env:
+          GITHUB_GRAPHQL_URL: 'https://api.github.com/graphql'
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           READIT_SUMMARY_MODEL: ${{ vars.READIT_SUMMARY_MODEL }}
-        run: endpoint-readit-summarize-other -o "$SUMMARY_FILE" "$FETCH_FILE"
-
-      - name: 'Add summary to eval queue'
-        env:
-          OWNER_TOKEN: ${{ secrets.TOKEN }}
-        run: endpoint-readit-add-summary-to-eval-queue "$SUMMARY_FILE"
-
-      - name: 'Send summary'
-        env:
-          OWNER_TOKEN: ${{ secrets.TOKEN }}
-        run: endpoint-readit-send "$SUMMARY_FILE"
+        run: endpoint-readit-enqueue --fetch-path "$FETCH_FILE" --summary-path "$SUMMARY_FILE" "$INPUT_URL"
 
       - name: 'Upload artifacts'
         if: always()
