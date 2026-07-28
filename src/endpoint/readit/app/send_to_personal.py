@@ -18,6 +18,54 @@ logger = getLogger(__name__)
 logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())
 
 
+class AlreadyInArchiveError(Exception):
+    """Raised when the URL is already present in the personal issue archive."""
+
+    pass
+
+
+class GetRepositoryNameWithOwner:
+    QUERY = gql("""
+    query ($repositoryId: ID!) {
+      node(id: $repositoryId) {
+        ... on Repository {
+          nameWithOwner
+        }
+      }
+    }
+    """)
+
+    def __init__(self, *, repositoryId: str):
+        self._values = {"repositoryId": repositoryId}
+
+    def execute(self, client) -> str:
+        result = client.execute(self.QUERY, variable_values=self._values)
+        node = result.get("node")
+        if not node:
+            raise ValueError(
+                f"Repository with ID '{self._values['repositoryId']}' not found."
+            )
+        return node["nameWithOwner"]
+
+
+class SearchIssuesByUrl:
+    QUERY = gql("""
+    query ($query: String!) {
+      search(query: $query, type: ISSUE, first: 1) {
+        issueCount
+      }
+    }
+    """)
+
+    def __init__(self, *, query: str):
+        self._values = {"query": query}
+
+    def execute(self, client) -> int:
+        result = client.execute(self.QUERY, variable_values=self._values)
+        logger.debug(result)
+        return result.get("search", {}).get("issueCount", 0)
+
+
 def mock_create_issue_execute(self, client) -> CreateIssueResponse:
     title = self._values["title"]
     logger.info(f"  [Dry Run] Would create Issue: '{title}'")
@@ -86,7 +134,32 @@ class PersonalStorage:
             "arxiv": self.add_arXiv_article,
         }
 
+    _papers_repo_name: str | None = None
+    _others_repo_name: str | None = None
+
+    def has_article(self, url: str) -> bool:
+        if not PersonalStorage._papers_repo_name:
+            PersonalStorage._papers_repo_name = GetRepositoryNameWithOwner(
+                repositoryId=self.PAPERS_REPO_ID
+            ).execute(self._client)
+        if not PersonalStorage._others_repo_name:
+            PersonalStorage._others_repo_name = GetRepositoryNameWithOwner(
+                repositoryId=self.OTHERS_REPO_ID
+            ).execute(self._client)
+
+        papers_repo = PersonalStorage._papers_repo_name
+        others_repo = PersonalStorage._others_repo_name
+
+        search_query = f'repo:{papers_repo} repo:{others_repo} "{url}"'
+        count = SearchIssuesByUrl(query=search_query).execute(self._client)
+        return count > 0
+
     def add_article(self, bb: Blackboard):
+        if self.has_article(bb.url_as_str()):
+            raise AlreadyInArchiveError(
+                f"URL '{bb.url_as_str()}' is already in the personal archive."
+            )
+
         if self._add_known_article_if_possible(bb):
             return
 

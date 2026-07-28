@@ -9,6 +9,7 @@ from endpoint.readit.core import Step
 from endpoint.readit.steps.fetch import FetchStep
 from endpoint.readit.steps.ensure import EnsureStep
 from endpoint.readit.steps.ensure import AlreadyInQueueError
+from endpoint.readit.app.send_to_personal import AlreadyInArchiveError
 from endpoint.readit.steps.summarize import SummarizeStep
 from endpoint.readit.steps.add_queue import AddQueueStep
 from endpoint.readit.steps.send import SendStep
@@ -43,6 +44,11 @@ def translate_domain_exceptions(func):
         except AlreadyInQueueError as e:
             logger.info(
                 "URL is already in the evaluation queue. Skipping remaining steps."
+            )
+            raise click.ClickException(str(e))
+        except AlreadyInArchiveError as e:
+            logger.info(
+                "URL is already in the personal archive. Skipping remaining steps."
             )
             raise click.ClickException(str(e))
 
