@@ -145,8 +145,9 @@ class SummarizeStep(Step):
 
         if parsed_url.netloc == "arxiv.org":
             arxiv_id = parsed_url.path.split("/")[-1]
+            client = arxiv.Client()
             search = arxiv.Search(id_list=[arxiv_id])
-            results = list(search.results())
+            results = list(client.results(search))
             paper = results[0]
 
             return bb.model_copy(
