@@ -76,6 +76,7 @@ class GeekNewsProcessor(BaseProcessor):
             html = re.sub(r"<br\s*/?>", "</p><p>", html, flags=re.IGNORECASE)
             return html.encode("utf-8")
         except Exception:
+            logger.warning("HTML preprocessing failed; using raw HTML", exc_info=True)
             return html_bytes
 
     def _merge_link_and_header(self, text: str) -> str:
@@ -156,6 +157,7 @@ class LinkedInProcessor(BaseProcessor):
                         text_node.replace_with(*new_nodes)
             return str(soup).encode("utf-8")
         except Exception:
+            logger.warning("HTML preprocessing failed; using raw HTML", exc_info=True)
             return html_bytes
 
     def postprocess_text(self, text: str) -> str:
@@ -247,23 +249,22 @@ class FetchStep(Step):
         processor = get_processor(final_url)
         preprocessed_bytes = processor.preprocess_html(page_html_bytes)
 
-        # Extract content using trafilatura
+        # Extract markdown-formatted content (without comments) plus metadata in one pass
         trafilatura_json_str = trafilatura.extract(
-            preprocessed_bytes, output_format="json", with_metadata=True
+            preprocessed_bytes,
+            output_format="json",
+            with_metadata=True,
+            include_comments=False,
+            include_formatting=True,
+            include_links=True,
         )
-        if trafilatura_json_str:
-            trafilatura_data = json.loads(trafilatura_json_str)
-            # Extract content with markdown formatting and without comments
-            formatted_text = trafilatura.extract(
-                preprocessed_bytes,
-                include_comments=False,
-                include_formatting=True,
-                include_links=True,
+        trafilatura_data = (
+            json.loads(trafilatura_json_str) if trafilatura_json_str else {}
+        )
+        if trafilatura_data.get("text"):
+            trafilatura_data["text"] = processor.postprocess_text(
+                trafilatura_data["text"]
             )
-            if formatted_text:
-                trafilatura_data["text"] = processor.postprocess_text(formatted_text)
-        else:
-            trafilatura_data = {}
 
         return bb.model_copy(
             update={

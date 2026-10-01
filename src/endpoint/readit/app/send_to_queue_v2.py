@@ -116,16 +116,6 @@ class Queue:
             value=date,
         ).execute(self._client)
 
-        # Use comment_url (where key sentences are) if available
-        summary_url = bb.personal_archive.comment_url
-        if summary_url:
-            UpdateTextFieldValue(
-                projectId=self.OTHER_PROJECT_ID,
-                itemId=item_id,
-                fieldId=self.OTHER_KEY_SENTENCES_URL_FIELD_ID,
-                value=summary_url,
-            ).execute(self._client)
-
         UpdateTextFieldValue(
             projectId=self.OTHER_PROJECT_ID,
             itemId=item_id,
@@ -133,24 +123,27 @@ class Queue:
             value=comment_oid,
         ).execute(self._client)
 
-        # Use content_comment_url (where original content is) if available
-        content_url = bb.personal_archive.content_comment_url
-        if content_url:
-            UpdateTextFieldValue(
-                projectId=self.OTHER_PROJECT_ID,
-                itemId=item_id,
-                fieldId=self.OTHER_CONTENT_URL_FIELD_ID,
-                value=content_url,
-            ).execute(self._client)
+        # Optional links to the comments holding key sentences / original content
+        archive = bb.personal_archive
+        self._update_text_fields(
+            item_id,
+            {
+                self.OTHER_KEY_SENTENCES_URL_FIELD_ID: archive.comment_url,
+                self.OTHER_CONTENT_URL_FIELD_ID: archive.content_comment_url,
+                self.OTHER_CONTENT_ID_FIELD_ID: archive.content_comment_oid,
+            },
+        )
 
-        content_oid = bb.personal_archive.content_comment_oid
-        if content_oid:
-            UpdateTextFieldValue(
-                projectId=self.OTHER_PROJECT_ID,
-                itemId=item_id,
-                fieldId=self.OTHER_CONTENT_ID_FIELD_ID,
-                value=content_oid,
-            ).execute(self._client)
+    def _update_text_fields(self, item_id, values: dict[str, str | None]) -> None:
+        """Update text fields on the Other project item, skipping unset (None/empty) values."""
+        for field_id, value in values.items():
+            if value:
+                UpdateTextFieldValue(
+                    projectId=self.OTHER_PROJECT_ID,
+                    itemId=item_id,
+                    fieldId=field_id,
+                    value=value,
+                ).execute(self._client)
 
     def _add_arxiv(self, bb: Blackboard):
         # TODO: Move arxiv_id extraction to Blackboard model or fetcher in the future

@@ -64,6 +64,68 @@ class CreateDiscussion:
         pass
 
 
+# GitHub rejects comments over 65,536 characters; keep some headroom for markers.
+CONTENT_COMMENT_MAX_LENGTH = 60000
+CONTENT_COMMENT_MARKER = "<!-- type: original_content -->"
+_FENCE = "```"
+
+
+def split_content(text: str, limit: int = CONTENT_COMMENT_MAX_LENGTH) -> list[str]:
+    """Split text into chunks of at most `limit` characters, preferring line boundaries.
+
+    A code fence that is open at a chunk boundary is closed and re-opened so that
+    every chunk renders correctly on its own.
+    """
+    chunks: list[str] = []
+    current: list[str] = []
+    size = 0
+    in_fence = False
+    reserve = len(_FENCE) * 2 + 2  # room for closing and re-opening a fence
+
+    def flush() -> None:
+        nonlocal current, size
+        if in_fence:
+            current.append(_FENCE)
+        chunks.append("\n".join(current))
+        current = [_FENCE] if in_fence else []
+        size = sum(len(x) + 1 for x in current)
+
+    for line in text.split("\n"):
+        # Hard-split a single line that cannot fit in a chunk on its own.
+        if len(line) > limit - reserve and current:
+            flush()
+        while len(line) > limit - reserve:
+            room = limit - reserve - size
+            current.append(line[:room])
+            line = line[room:]
+            flush()
+        if size + len(line) + 1 > limit - reserve and current:
+            flush()
+        current.append(line)
+        size += len(line) + 1
+        if line.lstrip().startswith(_FENCE):
+            in_fence = not in_fence
+    if current:
+        chunks.append("\n".join(current))
+    return chunks
+
+
+def build_original_content_comments(text: str | None) -> list[str]:
+    """Return the comment bodies that preserve `text` (empty if there is nothing to keep)."""
+    if not text:
+        return []
+    chunks = split_content(text)
+    total = len(chunks)
+    return [
+        "\n".join(
+            [CONTENT_COMMENT_MARKER]
+            + ([f"<!-- part: {i}/{total} -->"] if total > 1 else [])
+            + [chunk]
+        )
+        for i, chunk in enumerate(chunks, start=1)
+    ]
+
+
 # TODO: Consider renaming this class to ReviewIssueStorage or similar in the future.
 class PersonalStorage:
     # Repository IDs for separation
@@ -156,28 +218,18 @@ class PersonalStorage:
         self._add_original_content_comment(bb, issue_oid)
 
     def _add_original_content_comment(self, bb: Blackboard, issue_oid: str) -> None:
-        body_text = (bb.trafilatura or {}).get("text")
-        if not body_text:
-            return
-
-        max_length = 60000
-        if len(body_text) > max_length:
-            truncated_text = body_text[:max_length]
-            content_comment_body = (
-                "<!-- type: original_content -->\n"
-                f"{truncated_text}\n\n"
-                "---\n"
-                "*Note: The content was truncated because it exceeded the character limit.*"
-            )
-        else:
-            content_comment_body = f"<!-- type: original_content -->\n{body_text}"
-
-        content_comment_resp = AddIssueComment(
-            subjectId=issue_oid,
-            body=content_comment_body,
-        ).execute(self._client)
-        bb.personal_archive.content_comment_oid = content_comment_resp.id
-        bb.personal_archive.content_comment_url = content_comment_resp.url
+        """Preserve the extracted text as comment(s); failure must not abort archiving."""
+        bodies = build_original_content_comments((bb.trafilatura or {}).get("text"))
+        try:
+            for i, body in enumerate(bodies):
+                resp = AddIssueComment(subjectId=issue_oid, body=body).execute(
+                    self._client
+                )
+                if i == 0:
+                    bb.personal_archive.content_comment_oid = resp.id
+                    bb.personal_archive.content_comment_url = resp.url
+        except Exception as e:
+            logger.warning("Failed to record original content: %s", e)
 
 
 def send_to_personal(bb: Blackboard, dry_run: bool) -> None:
