@@ -1,11 +1,13 @@
 import json
 import os
+import re
 import time
 from logging import getLogger
 from urllib.parse import urlparse
 from urllib.parse import urlunparse
 
 import trafilatura
+from bs4 import BeautifulSoup, NavigableString
 from curl_cffi import requests
 
 from endpoint.readit.core import Blackboard
@@ -13,6 +15,176 @@ from endpoint.readit.core import Step
 
 logger = getLogger(__name__)
 logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())
+
+
+class BaseProcessor:
+    """Base class for HTML and text pre/postprocessing."""
+
+    def preprocess_html(self, html_bytes: bytes) -> bytes:
+        return html_bytes
+
+    def postprocess_text(self, text: str) -> str:
+        return text
+
+
+def merge_broken_lines(text: str) -> str:
+    """Merge accidental newlines inside sentences, leaving code fences and headings intact."""
+    # Odd-indexed chunks are fenced code blocks; only even-indexed ones are prose.
+    chunks = re.split(r"(```.*?```)", text, flags=re.DOTALL)
+    for i in range(0, len(chunks), 2):
+        chunks[i] = _merge_prose(chunks[i])
+    return "".join(chunks)
+
+
+def _merge_prose(text: str) -> str:
+    # Merge inline code backticks followed by newlines and a lowercase/Korean character
+    pattern_backtick = r"`([^`\n]+)`\s*\n+\s*([가-힣a-z,.?!~])"
+    text = re.sub(pattern_backtick, r"`\1` \2", text)
+
+    merged_lines: list[str] = []
+    for line in text.split("\n"):
+        if merged_lines and merged_lines[-1].strip() and line.strip():
+            prev_line = merged_lines[-1].rstrip()
+            curr_line = line.strip()
+            if (
+                not prev_line.lstrip().startswith("#")
+                and not prev_line.endswith((".", "!", "?", ":", "#", "-", "*"))
+                and re.match(r"^[가-힣a-z]", curr_line)
+            ):
+                merged_lines[-1] = prev_line + " " + curr_line
+                continue
+        merged_lines.append(line)
+    return "\n".join(merged_lines)
+
+
+class DefaultProcessor(BaseProcessor):
+    """Default processor that performs no modifications."""
+
+    pass
+
+
+class GeekNewsProcessor(BaseProcessor):
+    """Geek News specific HTML and text pre/postprocessor."""
+
+    def preprocess_html(self, html_bytes: bytes) -> bytes:
+        try:
+            html = html_bytes.decode("utf-8", errors="replace")
+            # Replace list items with paragraph tags to preserve list item separation and newlines
+            html = re.sub(r"<li>", "<p>- ", html, flags=re.IGNORECASE)
+            html = re.sub(r"</li>", "</p>", html, flags=re.IGNORECASE)
+            # Replace br tags with paragraph boundaries to preserve single line breaks
+            html = re.sub(r"<br\s*/?>", "</p><p>", html, flags=re.IGNORECASE)
+            return html.encode("utf-8")
+        except Exception:
+            logger.warning("HTML preprocessing failed; using raw HTML", exc_info=True)
+            return html_bytes
+
+    def _merge_link_and_header(self, text: str) -> str:
+        """Merge the top link and the title header into a single unified clickable header."""
+        link_match = re.search(r"^\[([^\]]+)\]\((https?://[^\)]+)\)", text.strip())
+        if link_match:
+            link_text, link_url = link_match.groups()
+            header_match = re.search(r"#\s+([^\n]+)", text)
+            if header_match:
+                header_text = header_match.group(1).strip()
+                # Remove the top link and its trailing spaces/newlines
+                cleaned_text = re.sub(r"^\[[^\]]+\]\([^\)]+\)\s*", "", text.strip())
+                # Replace '# Title' with '# [Title](URL)'
+                return re.sub(
+                    r"#\s+" + re.escape(header_text),
+                    f"# [{header_text}]({link_url})",
+                    cleaned_text,
+                    count=1,
+                )
+        return text
+
+    def postprocess_text(self, text: str) -> str:
+        # Strip comments section from GeekNews
+        for delimiter in ["## 댓글과 토론", "## 댓글"]:
+            if delimiter in text:
+                text = text.split(delimiter)[0].strip()
+
+        # Merge the top link and title header for GeekNews into a single unified clickable header
+        text = self._merge_link_and_header(text)
+
+        text = merge_broken_lines(text)
+
+        # Remove empty lines between consecutive list items to keep list blocks compact
+        lines = text.splitlines()
+        new_lines = []
+        for i, line in enumerate(lines):
+            if line.strip().startswith("- ") and i > 0:
+                last_non_empty = None
+                for prev in reversed(new_lines):
+                    if prev.strip():
+                        last_non_empty = prev.strip()
+                        break
+                if last_non_empty and (
+                    last_non_empty.startswith("- ") or last_non_empty.startswith("* ")
+                ):
+                    while new_lines and not new_lines[-1].strip():
+                        new_lines.pop()
+            new_lines.append(line)
+        text = "\n".join(new_lines)
+        # Strip empty bullets followed by markdown headings
+        pattern_empty_bullet = re.compile(r"^\s*[-\*\+]\s*\n+\s*(#+)", re.MULTILINE)
+        text = pattern_empty_bullet.sub(r"\1", text)
+        return text
+
+
+class LinkedInProcessor(BaseProcessor):
+    """LinkedIn specific HTML and text pre/postprocessor."""
+
+    def preprocess_html(self, html_bytes: bytes) -> bytes:
+        try:
+            html = html_bytes.decode("utf-8", errors="replace")
+            soup = BeautifulSoup(html, "html.parser")
+            commentary = soup.find(
+                attrs={"data-test-id": "main-feed-activity-card__commentary"}
+            )
+            if commentary:
+                for text_node in list(commentary.find_all(string=True)):
+                    if "\n" in text_node:
+                        text_str = text_node
+                        parts = text_str.split("\n\n")
+                        new_nodes = []
+                        for idx, part in enumerate(parts):
+                            if part:
+                                clean_part = part.replace("\n", " ")
+                                new_nodes.append(NavigableString(clean_part))
+                            if idx < len(parts) - 1:
+                                new_nodes.append(soup.new_tag("br"))
+                        text_node.replace_with(*new_nodes)
+            return str(soup).encode("utf-8")
+        except Exception:
+            logger.warning("HTML preprocessing failed; using raw HTML", exc_info=True)
+            return html_bytes
+
+    def postprocess_text(self, text: str) -> str:
+        # Match markdown links containing comments or comment_actor in their target and strip everything from there
+        pattern = re.compile(
+            r"\[[^\]]+\]\([^\)]*(?:comment_actor|see-more-comments)[^\)]*\)"
+        )
+        match = pattern.search(text)
+        if match:
+            text = text[: match.start()].strip()
+        # Remove lines that contain only 3 or more repetitions of =, -, _, *, or spaces/tabs
+        pattern_separator = re.compile(
+            r"^\s*(?:={3,}|-{3,}|_{3,}|\*{3,})\s*$", re.MULTILINE
+        )
+        text = pattern_separator.sub("", text)
+        text = merge_broken_lines(text)
+        return text
+
+
+def get_processor(url: str) -> BaseProcessor:
+    """Return the appropriate HTML/text processor for the given URL."""
+    host = urlparse(url).hostname or ""
+    if host == "news.hada.io":
+        return GeekNewsProcessor()
+    if host == "linkedin.com" or host.endswith(".linkedin.com"):
+        return LinkedInProcessor()
+    return DefaultProcessor()
 
 
 def normalize_url(url: str) -> str:
@@ -73,14 +245,26 @@ class FetchStep(Step):
         # Normalize the URL
         normalized_url = normalize_url(final_url)
 
-        # Extract content using trafilatura
+        # Get the appropriate HTML/text processor based on the URL
+        processor = get_processor(final_url)
+        preprocessed_bytes = processor.preprocess_html(page_html_bytes)
+
+        # Extract content using trafilatura (markdown-formatted, without comments)
         trafilatura_json_str = trafilatura.extract(
-            page_html_bytes, output_format="json", with_metadata=True
+            preprocessed_bytes,
+            output_format="json",
+            with_metadata=True,
+            include_comments=False,
+            include_formatting=True,
+            include_links=True,
         )
-        if trafilatura_json_str:
-            trafilatura_data = json.loads(trafilatura_json_str)
-        else:
-            trafilatura_data = {}
+        trafilatura_data = (
+            json.loads(trafilatura_json_str) if trafilatura_json_str else {}
+        )
+        if trafilatura_data.get("text"):
+            trafilatura_data["text"] = processor.postprocess_text(
+                trafilatura_data["text"]
+            )
 
         return bb.model_copy(
             update={

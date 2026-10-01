@@ -51,6 +51,8 @@ class Queue:
     OTHER_KEY_SENTENCES_URL_FIELD_ID = "PVTF_lAHOAOPA3c4BWG6ZzhRdy4E"
     OTHER_KEY_SENTENCES_ID_FIELD_ID = "PVTF_lAHOAOPA3c4BWG6ZzhSI5iA"
     OTHER_URL_FIELD_ID = "PVTF_lAHOAOPA3c4BWG6ZzhReQy0"
+    OTHER_CONTENT_URL_FIELD_ID = "PVTF_lAHOAOPA3c4BWG6ZzhTMTCA"
+    OTHER_CONTENT_ID_FIELD_ID = "PVTF_lAHOAOPA3c4BWG6ZzhTMTDk"
 
     def __init__(self):
         github_graphql_url = os.environ["GITHUB_GRAPHQL_URL"]
@@ -130,6 +132,27 @@ class Queue:
             fieldId=self.OTHER_KEY_SENTENCES_ID_FIELD_ID,
             value=comment_oid,
         ).execute(self._client)
+
+        # Optional links to the comment holding the original content
+        archive = bb.personal_archive
+        self._update_text_fields(
+            item_id,
+            {
+                self.OTHER_CONTENT_URL_FIELD_ID: archive.content_comment_url,
+                self.OTHER_CONTENT_ID_FIELD_ID: archive.content_comment_oid,
+            },
+        )
+
+    def _update_text_fields(self, item_id, values: dict[str, str | None]) -> None:
+        """Update text fields on the Other project item, skipping unset (None/empty) values."""
+        for field_id, value in values.items():
+            if value:
+                UpdateTextFieldValue(
+                    projectId=self.OTHER_PROJECT_ID,
+                    itemId=item_id,
+                    fieldId=field_id,
+                    value=value,
+                ).execute(self._client)
 
     def _add_arxiv(self, bb: Blackboard):
         # TODO: Move arxiv_id extraction to Blackboard model or fetcher in the future
