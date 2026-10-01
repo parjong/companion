@@ -99,6 +99,38 @@ class AddIssueComment:
         )
 
 
+@dataclass(frozen=True)
+class UpdateIssueCommentResponse:
+    id: str
+    body: str
+
+
+class UpdateIssueComment:
+    # https://docs.github.com/en/graphql/reference/mutations#updateissuecomment
+    QUERY = gql("""
+    mutation ($id: ID!, $body: String!) {
+      op: updateIssueComment(input: {
+        id: $id,
+        body: $body,
+      }) { issueComment { id body } }
+    }
+    """)
+
+    def __init__(self, *, id: str, body: str):
+        self._values = {
+            "id": id,
+            "body": body,
+        }
+
+    def execute(self, client) -> UpdateIssueCommentResponse:
+        result = client.execute(self.QUERY, variable_values=self._values)
+        logger.debug(result)
+        return UpdateIssueCommentResponse(
+            id=result["op"]["issueComment"]["id"],
+            body=result["op"]["issueComment"]["body"],
+        )
+
+
 class UpdateTextFieldValue:
     # https://docs.github.com/en/graphql/reference/mutations#updateprojectv2itemfieldvalue
     QUERY = gql("""

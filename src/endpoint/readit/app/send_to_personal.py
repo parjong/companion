@@ -152,6 +152,33 @@ class PersonalStorage:
             bb.personal_archive.comment_oid = comment_resp.id
             bb.personal_archive.comment_url = comment_resp.url
 
+        # Add original content as a comment if available
+        self._add_original_content_comment(bb, issue_oid)
+
+    def _add_original_content_comment(self, bb: Blackboard, issue_oid: str) -> None:
+        body_text = (bb.trafilatura or {}).get("text")
+        if not body_text:
+            return
+
+        max_length = 60000
+        if len(body_text) > max_length:
+            truncated_text = body_text[:max_length]
+            content_comment_body = (
+                "<!-- type: original_content -->\n"
+                f"{truncated_text}\n\n"
+                "---\n"
+                "*Note: The content was truncated because it exceeded the character limit.*"
+            )
+        else:
+            content_comment_body = f"<!-- type: original_content -->\n{body_text}"
+
+        content_comment_resp = AddIssueComment(
+            subjectId=issue_oid,
+            body=content_comment_body,
+        ).execute(self._client)
+        bb.personal_archive.content_comment_oid = content_comment_resp.id
+        bb.personal_archive.content_comment_url = content_comment_resp.url
+
 
 def send_to_personal(bb: Blackboard, dry_run: bool) -> None:
     storage = PersonalStorage()

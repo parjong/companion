@@ -51,6 +51,8 @@ class Queue:
     OTHER_KEY_SENTENCES_URL_FIELD_ID = "PVTF_lAHOAOPA3c4BWG6ZzhRdy4E"
     OTHER_KEY_SENTENCES_ID_FIELD_ID = "PVTF_lAHOAOPA3c4BWG6ZzhSI5iA"
     OTHER_URL_FIELD_ID = "PVTF_lAHOAOPA3c4BWG6ZzhReQy0"
+    OTHER_CONTENT_URL_FIELD_ID = "PVTF_lAHOAOPA3c4BWG6ZzhTMTCA"
+    OTHER_CONTENT_ID_FIELD_ID = "PVTF_lAHOAOPA3c4BWG6ZzhTMTDk"
 
     def __init__(self):
         github_graphql_url = os.environ["GITHUB_GRAPHQL_URL"]
@@ -121,7 +123,7 @@ class Queue:
                 projectId=self.OTHER_PROJECT_ID,
                 itemId=item_id,
                 fieldId=self.OTHER_KEY_SENTENCES_URL_FIELD_ID,
-                value=str(summary_url),
+                value=summary_url,
             ).execute(self._client)
 
         UpdateTextFieldValue(
@@ -130,6 +132,25 @@ class Queue:
             fieldId=self.OTHER_KEY_SENTENCES_ID_FIELD_ID,
             value=comment_oid,
         ).execute(self._client)
+
+        # Use content_comment_url (where original content is) if available
+        content_url = bb.personal_archive.content_comment_url
+        if content_url:
+            UpdateTextFieldValue(
+                projectId=self.OTHER_PROJECT_ID,
+                itemId=item_id,
+                fieldId=self.OTHER_CONTENT_URL_FIELD_ID,
+                value=content_url,
+            ).execute(self._client)
+
+        content_oid = bb.personal_archive.content_comment_oid
+        if content_oid:
+            UpdateTextFieldValue(
+                projectId=self.OTHER_PROJECT_ID,
+                itemId=item_id,
+                fieldId=self.OTHER_CONTENT_ID_FIELD_ID,
+                value=content_oid,
+            ).execute(self._client)
 
     def _add_arxiv(self, bb: Blackboard):
         # TODO: Move arxiv_id extraction to Blackboard model or fetcher in the future
