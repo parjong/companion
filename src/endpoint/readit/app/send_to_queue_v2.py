@@ -116,6 +116,16 @@ class Queue:
             value=date,
         ).execute(self._client)
 
+        # Use comment_url (where key sentences are) if available
+        summary_url = bb.personal_archive.comment_url
+        if summary_url:
+            UpdateTextFieldValue(
+                projectId=self.OTHER_PROJECT_ID,
+                itemId=item_id,
+                fieldId=self.OTHER_KEY_SENTENCES_URL_FIELD_ID,
+                value=str(summary_url),
+            ).execute(self._client)
+
         UpdateTextFieldValue(
             projectId=self.OTHER_PROJECT_ID,
             itemId=item_id,
@@ -123,12 +133,11 @@ class Queue:
             value=comment_oid,
         ).execute(self._client)
 
-        # Optional links to the comments holding key sentences / original content
+        # Optional links to the comment holding the original content
         archive = bb.personal_archive
         self._update_text_fields(
             item_id,
             {
-                self.OTHER_KEY_SENTENCES_URL_FIELD_ID: archive.comment_url,
                 self.OTHER_CONTENT_URL_FIELD_ID: archive.content_comment_url,
                 self.OTHER_CONTENT_ID_FIELD_ID: archive.content_comment_oid,
             },

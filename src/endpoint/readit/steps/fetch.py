@@ -249,7 +249,7 @@ class FetchStep(Step):
         processor = get_processor(final_url)
         preprocessed_bytes = processor.preprocess_html(page_html_bytes)
 
-        # Extract markdown-formatted content (without comments) plus metadata in one pass
+        # Extract content using trafilatura (markdown-formatted, without comments)
         trafilatura_json_str = trafilatura.extract(
             preprocessed_bytes,
             output_format="json",
