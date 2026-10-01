@@ -24,25 +24,37 @@ class BaseProcessor:
         return html_bytes
 
     def postprocess_text(self, text: str) -> str:
-        # Merge inline code backticks followed by newlines and a lowercase/Korean character
-        pattern_backtick = r"`([^`\n]+)`\s*\n+\s*([가-힣a-z,.?!~])"
-        text = re.sub(pattern_backtick, r"`\1` \2", text)
-
-        # Merge general accidental newlines inside sentences
-        lines = text.splitlines()
-        merged_lines = []
-        for line in lines:
-            if merged_lines and merged_lines[-1].strip() and line.strip():
-                prev_line = merged_lines[-1].rstrip()
-                curr_line = line.strip()
-                if not prev_line.endswith(
-                    (".", "!", "?", ":", "#", "-", "*")
-                ) and re.match(r"^[가-힣a-z]", curr_line):
-                    merged_lines[-1] = prev_line + " " + curr_line
-                    continue
-            merged_lines.append(line)
-        text = "\n".join(merged_lines)
         return text
+
+
+def merge_broken_lines(text: str) -> str:
+    """Merge accidental newlines inside sentences, leaving code fences and headings intact."""
+    # Odd-indexed chunks are fenced code blocks; only even-indexed ones are prose.
+    chunks = re.split(r"(```.*?```)", text, flags=re.DOTALL)
+    for i in range(0, len(chunks), 2):
+        chunks[i] = _merge_prose(chunks[i])
+    return "".join(chunks)
+
+
+def _merge_prose(text: str) -> str:
+    # Merge inline code backticks followed by newlines and a lowercase/Korean character
+    pattern_backtick = r"`([^`\n]+)`\s*\n+\s*([가-힣a-z,.?!~])"
+    text = re.sub(pattern_backtick, r"`\1` \2", text)
+
+    merged_lines: list[str] = []
+    for line in text.split("\n"):
+        if merged_lines and merged_lines[-1].strip() and line.strip():
+            prev_line = merged_lines[-1].rstrip()
+            curr_line = line.strip()
+            if (
+                not prev_line.lstrip().startswith("#")
+                and not prev_line.endswith((".", "!", "?", ":", "#", "-", "*"))
+                and re.match(r"^[가-힣a-z]", curr_line)
+            ):
+                merged_lines[-1] = prev_line + " " + curr_line
+                continue
+        merged_lines.append(line)
+    return "\n".join(merged_lines)
 
 
 class DefaultProcessor(BaseProcessor):
@@ -94,8 +106,7 @@ class GeekNewsProcessor(BaseProcessor):
         # Merge the top link and title header for GeekNews into a single unified clickable header
         text = self._merge_link_and_header(text)
 
-        # Run parent class postprocessing (backtick and general sentence merging)
-        text = super().postprocess_text(text)
+        text = merge_broken_lines(text)
 
         # Remove empty lines between consecutive list items to keep list blocks compact
         lines = text.splitlines()
@@ -160,16 +171,16 @@ class LinkedInProcessor(BaseProcessor):
             r"^\s*(?:={3,}|-{3,}|_{3,}|\*{3,})\s*$", re.MULTILINE
         )
         text = pattern_separator.sub("", text)
-        # Run parent class postprocessing (backtick and general sentence merging)
-        text = super().postprocess_text(text)
+        text = merge_broken_lines(text)
         return text
 
 
 def get_processor(url: str) -> BaseProcessor:
     """Return the appropriate HTML/text processor for the given URL."""
-    if "news.hada.io" in url:
+    host = urlparse(url).hostname or ""
+    if host == "news.hada.io":
         return GeekNewsProcessor()
-    if "linkedin.com" in url:
+    if host == "linkedin.com" or host.endswith(".linkedin.com"):
         return LinkedInProcessor()
     return DefaultProcessor()
 
