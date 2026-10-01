@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Keep the version in sync with the guide in .pre-commit-config.yaml
+exec uvx --from pre-commit==4.5.1 pre-commit run
