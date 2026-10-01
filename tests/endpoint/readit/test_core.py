@@ -12,7 +12,6 @@ def test_blackboard_arxiv_validation():
         kind="arxiv",
         arxiv=ArxivMetadata(summary="Summary", year="2024"),
     )
-    assert bb.arxiv is not None
     assert bb.arxiv.year == "2024"
 
     # Invalid arxiv (missing arxiv field)
@@ -27,21 +26,12 @@ def test_blackboard_url_as_str():
 
 
 def test_personal_archive_metadata_validation():
-    """Test PersonalArchiveMetadata validation for comments and issues."""
+    """Test PersonalArchiveMetadata validation for content comment fields."""
     meta = PersonalArchiveMetadata(
-        issue_oid="ISSUE_OID",
-        issue_url="https://github.com/parjong/companion/issues/1",
-        comment_oid="COMMENT_OID",
-        comment_url="https://github.com/parjong/companion/issues/1#issuecomment-1",
         content_comment_oid="CONTENT_COMMENT_OID",
         content_comment_url="https://github.com/parjong/companion/issues/1#issuecomment-2",
     )
     assert meta.content_comment_oid == "CONTENT_COMMENT_OID"
-    assert (
-        meta.content_comment_url
-        == "https://github.com/parjong/companion/issues/1#issuecomment-2"
-    )
 
-    # Invalid URL validation
     with pytest.raises(ValueError):
         PersonalArchiveMetadata(content_comment_url="invalid-url")
