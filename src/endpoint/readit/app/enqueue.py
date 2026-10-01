@@ -9,6 +9,8 @@ from endpoint.readit.core import Step
 from endpoint.readit.steps.fetch import FetchStep
 from endpoint.readit.steps.ensure import EnsureStep
 from endpoint.readit.steps.ensure import AlreadyInQueueError
+from endpoint.readit.steps.ensure import AlreadyArchivedError
+from endpoint.readit.steps.ensure import EnsureNotArchivedStep
 from endpoint.readit.steps.summarize import SummarizeStep
 from endpoint.readit.steps.add_queue import AddQueueStep
 from endpoint.readit.steps.send import SendStep
@@ -44,6 +46,9 @@ def translate_domain_exceptions(func):
             logger.info(
                 "URL is already in the evaluation queue. Skipping remaining steps."
             )
+            raise click.ClickException(str(e))
+        except AlreadyArchivedError as e:
+            logger.info("URL is already archived. Skipping remaining steps.")
             raise click.ClickException(str(e))
 
     return wrapper
@@ -99,6 +104,7 @@ def main(
     bb = FetchStep()(bb)
     bb = SaveStep(fetch_path, "fetched")(bb)
     bb = EnsureStep(client)(bb)
+    bb = EnsureNotArchivedStep(client)(bb)
     bb = SummarizeStep()(bb)
     bb = SaveStep(summary_path, "summarized")(bb)
     bb = AddQueueStep(client)(bb)
