@@ -241,3 +241,97 @@ class AddProjectV2ItemById:
         result = client.execute(self.QUERY, variable_values=self._values)
         logger.debug(result)
         return ProjectItemID(result["op"]["item"]["id"])
+
+
+@dataclass(frozen=True)
+class ProjectItemDate:
+    id: ProjectItemID
+    date: str | None
+
+
+class ListProjectV2ItemDateValues:
+    # https://docs.github.com/en/graphql/reference/objects#projectv2itemfielddatevalue
+    QUERY = gql("""
+    query ($projectId: ID!, $after: String) {
+      node(id: $projectId) {
+        ... on ProjectV2 {
+          items(first: 100, after: $after) {
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+            nodes {
+              id
+              fieldValues(first: 20) {
+                nodes {
+                  ... on ProjectV2ItemFieldDateValue {
+                    date
+                    field {
+                      ... on ProjectV2FieldCommon {
+                        id
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    """)
+
+    def __init__(self, *, projectId: str, fieldId: str):
+        self._projectId = projectId
+        self._fieldId = fieldId
+
+    def execute(self, client) -> list[ProjectItemDate]:
+        items = []
+        after = None
+        has_next_page = True
+
+        while has_next_page:
+            result = client.execute(
+                self.QUERY,
+                variable_values={
+                    "projectId": self._projectId,
+                    "after": after,
+                },
+            )
+            items_data = result["node"]["items"]
+            for item in items_data["nodes"]:
+                date = None
+                for field_value in item["fieldValues"]["nodes"]:
+                    if not field_value:
+                        continue
+                    if field_value.get("field", {}).get("id") == self._fieldId:
+                        date = field_value.get("date")
+                items.append(ProjectItemDate(id=ProjectItemID(item["id"]), date=date))
+
+            page_info = items_data["pageInfo"]
+            has_next_page = page_info["hasNextPage"]
+            after = page_info["endCursor"]
+
+        return items
+
+
+class DeleteProjectV2Item:
+    # https://docs.github.com/en/graphql/reference/mutations#deleteprojectv2item
+    QUERY = gql("""
+    mutation ($projectId: ID!, $itemId: ID!) {
+      op: deleteProjectV2Item(input: {
+        projectId: $projectId,
+        itemId: $itemId,
+      }) { deletedItemId }
+    }
+    """)
+
+    def __init__(self, *, projectId: str, itemId: ProjectItemID):
+        self._values = {
+            "projectId": projectId,
+            "itemId": str(itemId),
+        }
+
+    def execute(self, client) -> None:
+        result = client.execute(self.QUERY, variable_values=self._values)
+        logger.debug(result)

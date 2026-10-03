@@ -1,0 +1,44 @@
+name: 'EP/readit/eval_queue/prune'
+
+on:
+  # TODO: Enable 'schedule' once long-term duplicate prevention exists (see #124);
+  # the eval queue currently doubles as the record used to detect duplicate URLs.
+  workflow_dispatch:
+    inputs:
+      max_age_days:
+        description: 'Remove items added more than this many days ago'
+        required: false
+        default: '30'
+      limit:
+        description: 'Maximum number of items to remove in one run'
+        required: false
+        default: '100'
+      dry_run:
+        description: 'Only log the items that would be removed'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: 0.9.22
+
+      - name: 'Install tools'
+        run: uv tool install --force ./
+
+      - name: 'Prune eval queue'
+        env:
+          OWNER_TOKEN: ${{ secrets.TOKEN }}
+          GITHUB_GRAPHQL_URL: 'https://api.github.com/graphql'
+          MAX_AGE_DAYS: ${{ github.event.inputs.max_age_days || '30' }}
+          LIMIT: ${{ github.event.inputs.limit || '100' }}
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then FLAG=--dry-run; else FLAG=--no-dry-run; fi
+          endpoint-readit-prune-eval-queue --max-age-days "$MAX_AGE_DAYS" --limit "$LIMIT" "$FLAG"
