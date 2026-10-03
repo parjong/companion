@@ -241,3 +241,43 @@ class AddProjectV2ItemById:
         result = client.execute(self.QUERY, variable_values=self._values)
         logger.debug(result)
         return ProjectItemID(result["op"]["item"]["id"])
+
+
+@dataclass(frozen=True)
+class IssueSearchHit:
+    url: str
+    body: str
+
+
+class SearchIssuesByBody:
+    # https://docs.github.com/en/graphql/reference/queries#search
+    # 'first: 10' is a margin rather than an expected result count: an exact
+    # match yields 0 or 1 hits, but search tokenizes URLs loosely, so inexact
+    # hits can rank ahead of the exact one. Callers must verify the hits.
+    QUERY = gql("""
+    query ($query: String!) {
+      search(query: $query, type: ISSUE, first: 10) {
+        nodes {
+          ... on Issue {
+            url
+            body
+          }
+        }
+      }
+    }
+    """)
+
+    def __init__(self, *, repos: list[str], text: str):
+        # Quotes inside the text would break the phrase match.
+        phrase = text.replace('"', " ")
+        repo_qualifiers = " ".join(f"repo:{repo}" for repo in repos)
+        self._values = {"query": f'{repo_qualifiers} is:issue in:body "{phrase}"'}
+
+    def execute(self, client) -> list[IssueSearchHit]:
+        result = client.execute(self.QUERY, variable_values=self._values)
+        logger.debug(result)
+        return [
+            IssueSearchHit(url=node["url"], body=node["body"])
+            for node in result["search"]["nodes"]
+            if node
+        ]
