@@ -2,8 +2,6 @@ import functools
 import logging
 import os
 import click
-from gql import Client
-from gql.transport.requests import RequestsHTTPTransport as HTTPTransport
 from companion.endpoint.readit.core import Blackboard
 from companion.endpoint.readit.core import Step
 from companion.endpoint.readit.steps.fetch import FetchStep
@@ -14,6 +12,7 @@ from companion.endpoint.readit.steps.ensure import EnsureNotArchivedStep
 from companion.endpoint.readit.steps.summarize import SummarizeStep
 from companion.endpoint.readit.steps.add_queue import AddQueueStep
 from companion.endpoint.readit.steps.send import SendStep
+from companion.connectors.github import make_client
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -89,12 +88,7 @@ def main(
     # Initialize GQL Client
     github_graphql_url = os.environ["GITHUB_GRAPHQL_URL"]
     owner_token = os.environ["OWNER_TOKEN"]
-    client = Client(
-        transport=HTTPTransport(
-            url=github_graphql_url,
-            headers={"Authorization": f"Bearer {owner_token}"},
-        )
-    )
+    client = make_client(url=github_graphql_url, token=owner_token)
 
     bb = Blackboard(url=url)
 

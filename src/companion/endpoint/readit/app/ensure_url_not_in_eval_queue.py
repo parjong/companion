@@ -1,6 +1,4 @@
 import click
-from gql import Client
-from gql.transport.requests import RequestsHTTPTransport as HTTPTransport
 
 from logging import getLogger
 import os
@@ -9,6 +7,7 @@ import sys
 from companion.endpoint.readit.core import Blackboard
 from companion.endpoint.readit.steps.ensure import EnsureStep
 from companion.endpoint.readit.steps.ensure import AlreadyInQueueError
+from companion.connectors.github import make_client
 
 logger = getLogger(__name__)
 
@@ -21,12 +20,7 @@ def main(input_path: str) -> None:
     github_graphql_url = os.environ["GITHUB_GRAPHQL_URL"]
     owner_token = os.environ["OWNER_TOKEN"]
 
-    client = Client(
-        transport=HTTPTransport(
-            url=github_graphql_url,
-            headers={"Authorization": f"Bearer {owner_token}"},
-        )
-    )
+    client = make_client(url=github_graphql_url, token=owner_token)
 
     with open(input_path, "r") as f:
         bb = Blackboard.from_pipeline_file(f)

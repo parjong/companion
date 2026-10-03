@@ -1,11 +1,23 @@
 from dataclasses import dataclass
+from gql import Client
 from gql import gql
+from gql.transport.requests import RequestsHTTPTransport as HTTPTransport
 from typing import NewType
 from logging import getLogger
 
 logger = getLogger(__name__)
 
 ProjectItemID = NewType("ProjectItemID", str)
+
+
+def make_client(*, url: str, token: str) -> Client:
+    """Create a GraphQL client that authenticates with the given token."""
+    return Client(
+        transport=HTTPTransport(
+            url=url,
+            headers={"Authorization": f"Bearer {token}"},
+        )
+    )
 
 
 class AddProjectV2DraftIssue:
