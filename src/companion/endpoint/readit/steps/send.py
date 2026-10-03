@@ -1,9 +1,9 @@
 import logging
 import functools
 
-from endpoint.readit.core import Blackboard
-from endpoint.readit.core import Step
-from endpoint.readit.app.send_to_personal import send_to_personal
+from companion.endpoint.readit.core import Blackboard
+from companion.endpoint.readit.core import Step
+from companion.endpoint.readit.app.send_to_personal import send_to_personal
 
 logger = logging.getLogger(__name__)
 

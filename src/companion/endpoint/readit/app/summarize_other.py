@@ -4,8 +4,8 @@ import os
 
 import click
 
-from endpoint.readit.steps.summarize import SummarizeStep
-from endpoint.readit.steps.summarize import load_blackboard
+from companion.endpoint.readit.steps.summarize import SummarizeStep
+from companion.endpoint.readit.steps.summarize import load_blackboard
 
 logger = getLogger(__name__)
 logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())

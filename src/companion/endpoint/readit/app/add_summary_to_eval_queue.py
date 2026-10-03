@@ -5,8 +5,8 @@ from gql.transport.requests import RequestsHTTPTransport as HTTPTransport
 from logging import getLogger
 import os
 
-from endpoint.readit.core import Blackboard
-from endpoint.readit.steps.add_queue import AddQueueStep
+from companion.endpoint.readit.core import Blackboard
+from companion.endpoint.readit.steps.add_queue import AddQueueStep
 
 logger = getLogger(__name__)
 

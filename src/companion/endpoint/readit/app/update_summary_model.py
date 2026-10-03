@@ -2,7 +2,7 @@ import logging
 import os
 import click
 import requests
-from endpoint.readit.steps.summarize import get_llm
+from companion.endpoint.readit.steps.summarize import get_llm
 
 logger = logging.getLogger(__name__)
 logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())

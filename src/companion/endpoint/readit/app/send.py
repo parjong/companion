@@ -2,8 +2,8 @@ import click
 import os
 import logging
 
-from endpoint.readit.core import Blackboard
-from endpoint.readit.steps.send import SendStep
+from companion.endpoint.readit.core import Blackboard
+from companion.endpoint.readit.steps.send import SendStep
 
 logger = logging.getLogger(__name__)
 

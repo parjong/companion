@@ -1,6 +1,6 @@
 import pytest
-from endpoint.readit.core import Blackboard
-from endpoint.readit.core import ArxivMetadata
+from companion.endpoint.readit.core import Blackboard
+from companion.endpoint.readit.core import ArxivMetadata
 
 
 def test_blackboard_arxiv_validation():

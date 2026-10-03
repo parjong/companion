@@ -1,10 +1,10 @@
 from logging import getLogger
 from gql import Client
 
-from endpoint.readit.core import Blackboard
-from endpoint.readit.core import Step
-from endpoint.readit.github import ListProjectV2ItemFieldValues
-from endpoint.readit.github import SearchIssuesByBody
+from companion.endpoint.readit.core import Blackboard
+from companion.endpoint.readit.core import Step
+from companion.endpoint.readit.github import ListProjectV2ItemFieldValues
+from companion.endpoint.readit.github import SearchIssuesByBody
 
 logger = getLogger(__name__)
 

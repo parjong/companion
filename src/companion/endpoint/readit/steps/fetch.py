@@ -8,8 +8,8 @@ from urllib.parse import urlunparse
 import trafilatura
 from curl_cffi import requests
 
-from endpoint.readit.core import Blackboard
-from endpoint.readit.core import Step
+from companion.endpoint.readit.core import Blackboard
+from companion.endpoint.readit.core import Step
 
 logger = getLogger(__name__)
 logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())
