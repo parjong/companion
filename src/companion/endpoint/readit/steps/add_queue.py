@@ -7,10 +7,10 @@ from gql import Client
 
 from companion.endpoint.readit.core import Blackboard
 from companion.endpoint.readit.core import Step
-from companion.endpoint.readit.github import ProjectItemID
-from companion.endpoint.readit.github import AddProjectV2DraftIssue
-from companion.endpoint.readit.github import UpdateTextFieldValue
-from companion.endpoint.readit.github import UpdateDateFieldValue
+from companion.connectors.github import ProjectItemID
+from companion.connectors.github import AddProjectV2DraftIssue
+from companion.connectors.github import UpdateTextFieldValue
+from companion.connectors.github import UpdateDateFieldValue
 
 logger = getLogger(__name__)
 

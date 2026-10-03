@@ -3,8 +3,8 @@ from gql import Client
 
 from companion.endpoint.readit.core import Blackboard
 from companion.endpoint.readit.core import Step
-from companion.endpoint.readit.github import ListProjectV2ItemFieldValues
-from companion.endpoint.readit.github import SearchIssuesByBody
+from companion.connectors.github import ListProjectV2ItemFieldValues
+from companion.connectors.github import SearchIssuesByBody
 
 logger = getLogger(__name__)
 
