@@ -5,12 +5,12 @@ from logging import getLogger
 
 from gql import Client
 
-from endpoint.readit.core import Blackboard
-from endpoint.readit.core import Step
-from endpoint.readit.github import ProjectItemID
-from endpoint.readit.github import AddProjectV2DraftIssue
-from endpoint.readit.github import UpdateTextFieldValue
-from endpoint.readit.github import UpdateDateFieldValue
+from companion.endpoint.readit.core import Blackboard
+from companion.endpoint.readit.core import Step
+from companion.endpoint.readit.github import ProjectItemID
+from companion.endpoint.readit.github import AddProjectV2DraftIssue
+from companion.endpoint.readit.github import UpdateTextFieldValue
+from companion.endpoint.readit.github import UpdateDateFieldValue
 
 logger = getLogger(__name__)
 

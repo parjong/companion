@@ -4,16 +4,16 @@ import os
 import click
 from gql import Client
 from gql.transport.requests import RequestsHTTPTransport as HTTPTransport
-from endpoint.readit.core import Blackboard
-from endpoint.readit.core import Step
-from endpoint.readit.steps.fetch import FetchStep
-from endpoint.readit.steps.ensure import EnsureStep
-from endpoint.readit.steps.ensure import AlreadyInQueueError
-from endpoint.readit.steps.ensure import AlreadyArchivedError
-from endpoint.readit.steps.ensure import EnsureNotArchivedStep
-from endpoint.readit.steps.summarize import SummarizeStep
-from endpoint.readit.steps.add_queue import AddQueueStep
-from endpoint.readit.steps.send import SendStep
+from companion.endpoint.readit.core import Blackboard
+from companion.endpoint.readit.core import Step
+from companion.endpoint.readit.steps.fetch import FetchStep
+from companion.endpoint.readit.steps.ensure import EnsureStep
+from companion.endpoint.readit.steps.ensure import AlreadyInQueueError
+from companion.endpoint.readit.steps.ensure import AlreadyArchivedError
+from companion.endpoint.readit.steps.ensure import EnsureNotArchivedStep
+from companion.endpoint.readit.steps.summarize import SummarizeStep
+from companion.endpoint.readit.steps.add_queue import AddQueueStep
+from companion.endpoint.readit.steps.send import SendStep
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

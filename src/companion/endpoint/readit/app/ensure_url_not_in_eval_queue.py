@@ -6,9 +6,9 @@ from logging import getLogger
 import os
 import sys
 
-from endpoint.readit.core import Blackboard
-from endpoint.readit.steps.ensure import EnsureStep
-from endpoint.readit.steps.ensure import AlreadyInQueueError
+from companion.endpoint.readit.core import Blackboard
+from companion.endpoint.readit.steps.ensure import EnsureStep
+from companion.endpoint.readit.steps.ensure import AlreadyInQueueError
 
 logger = getLogger(__name__)
 

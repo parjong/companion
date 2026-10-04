@@ -1,10 +1,10 @@
 import pytest
 
-from endpoint.readit.core import Blackboard
-from endpoint.readit.github import IssueSearchHit
-from endpoint.readit.github import SearchIssuesByBody
-from endpoint.readit.steps.ensure import AlreadyArchivedError
-from endpoint.readit.steps.ensure import EnsureNotArchivedStep
+from companion.endpoint.readit.core import Blackboard
+from companion.endpoint.readit.github import IssueSearchHit
+from companion.endpoint.readit.github import SearchIssuesByBody
+from companion.endpoint.readit.steps.ensure import AlreadyArchivedError
+from companion.endpoint.readit.steps.ensure import EnsureNotArchivedStep
 
 URL = "https://example.com/post?id=1"
 

@@ -11,10 +11,10 @@ from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel
 from pydantic import Field
 
-from endpoint.readit.core import Blackboard
-from endpoint.readit.core import ArxivMetadata
-from endpoint.readit.core import OtherMetadata
-from endpoint.readit.core import Step
+from companion.endpoint.readit.core import Blackboard
+from companion.endpoint.readit.core import ArxivMetadata
+from companion.endpoint.readit.core import OtherMetadata
+from companion.endpoint.readit.core import Step
 
 logger = getLogger(__name__)
 logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())

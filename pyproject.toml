@@ -1,5 +1,5 @@
 [project]
-name = "endpoint"
+name = "companion"
 version = "0.1.0"
 authors = [
     { name = "Jonghyun Park", email = "parjong@gmail.com" }
@@ -17,13 +17,13 @@ dependencies = [
 ]
 
 [project.scripts]
-endpoint-readit-update-summary-model = "endpoint.readit.app.update_summary_model:main"
-endpoint-readit-summarize-other = "endpoint.readit.app.summarize_other:main"
-endpoint-readit-send = "endpoint.readit.app.send:main"
-endpoint-readit-add-summary-to-eval-queue = "endpoint.readit.app.add_summary_to_eval_queue:main"
-endpoint-readit-fetch = "endpoint.readit.app.fetch:main"
-endpoint-readit-ensure-URL-not-in-eval-queue = "endpoint.readit.app.ensure_url_not_in_eval_queue:main"
-endpoint-readit-enqueue = "endpoint.readit.app.enqueue:main"
+endpoint-readit-update-summary-model = "companion.endpoint.readit.app.update_summary_model:main"
+endpoint-readit-summarize-other = "companion.endpoint.readit.app.summarize_other:main"
+endpoint-readit-send = "companion.endpoint.readit.app.send:main"
+endpoint-readit-add-summary-to-eval-queue = "companion.endpoint.readit.app.add_summary_to_eval_queue:main"
+endpoint-readit-fetch = "companion.endpoint.readit.app.fetch:main"
+endpoint-readit-ensure-URL-not-in-eval-queue = "companion.endpoint.readit.app.ensure_url_not_in_eval_queue:main"
+endpoint-readit-enqueue = "companion.endpoint.readit.app.enqueue:main"
 
 [build-system]
 requires = ["uv_build>=0.9.3,<0.10.0"]

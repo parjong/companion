@@ -3,8 +3,8 @@ from logging import getLogger
 
 import click
 
-from endpoint.readit.core import Blackboard
-from endpoint.readit.steps.fetch import FetchStep
+from companion.endpoint.readit.core import Blackboard
+from companion.endpoint.readit.steps.fetch import FetchStep
 
 logger = getLogger(__name__)
 logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())
