@@ -1,12 +1,11 @@
 import click
-from gql import Client
-from gql.transport.requests import RequestsHTTPTransport as HTTPTransport
 
 from logging import getLogger
 import os
 
 from companion.endpoint.readit.core import Blackboard
 from companion.endpoint.readit.steps.add_queue import AddQueueStep
+from companion.connectors.github import make_client
 
 logger = getLogger(__name__)
 
@@ -19,12 +18,7 @@ def main(summary_path: str) -> None:
     github_graphql_url = os.environ["GITHUB_GRAPHQL_URL"]
     owner_token = os.environ["OWNER_TOKEN"]
 
-    client = Client(
-        transport=HTTPTransport(
-            url=github_graphql_url,
-            headers={"Authorization": f"Bearer {owner_token}"},
-        )
-    )
+    client = make_client(url=github_graphql_url, token=owner_token)
 
     with open(summary_path, "r") as f:
         bb = Blackboard.from_pipeline_file(f)

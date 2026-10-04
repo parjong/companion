@@ -1,6 +1,4 @@
-from gql import Client
 from gql import gql
-from gql.transport.requests import RequestsHTTPTransport as HTTPTransport
 
 from logging import getLogger
 import os
@@ -13,6 +11,7 @@ from companion.connectors.github import CreateIssue
 from companion.connectors.github import CreateIssueResponse
 from companion.connectors.github import AddIssueComment
 from companion.connectors.github import AddIssueCommentResponse
+from companion.connectors.github import make_client
 
 logger = getLogger(__name__)
 logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())
@@ -75,12 +74,7 @@ class PersonalStorage:
 
         owner_token = os.environ["OWNER_TOKEN"]
 
-        self._client = Client(
-            transport=HTTPTransport(
-                url=github_graphql_url,
-                headers={"Authorization": f"Bearer {owner_token}"},
-            )
-        )
+        self._client = make_client(url=github_graphql_url, token=owner_token)
 
         self._handlers = {
             "arxiv": self.add_arXiv_article,
