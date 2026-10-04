@@ -9,10 +9,10 @@ from contextlib import ExitStack
 from unittest.mock import patch
 
 from companion.endpoint.readit.core import Blackboard
-from companion.endpoint.readit.github import CreateIssue
-from companion.endpoint.readit.github import CreateIssueResponse
-from companion.endpoint.readit.github import AddIssueComment
-from companion.endpoint.readit.github import AddIssueCommentResponse
+from companion.connectors.github import CreateIssue
+from companion.connectors.github import CreateIssueResponse
+from companion.connectors.github import AddIssueComment
+from companion.connectors.github import AddIssueCommentResponse
 
 logger = getLogger(__name__)
 logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())

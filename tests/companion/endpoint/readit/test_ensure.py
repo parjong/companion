@@ -1,8 +1,8 @@
 import pytest
 
 from companion.endpoint.readit.core import Blackboard
-from companion.endpoint.readit.github import IssueSearchHit
-from companion.endpoint.readit.github import SearchIssuesByBody
+from companion.connectors.github import IssueSearchHit
+from companion.connectors.github import SearchIssuesByBody
 from companion.endpoint.readit.steps.ensure import AlreadyArchivedError
 from companion.endpoint.readit.steps.ensure import EnsureNotArchivedStep
 
