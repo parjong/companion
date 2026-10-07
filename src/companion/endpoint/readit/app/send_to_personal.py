@@ -63,6 +63,29 @@ class CreateDiscussion:
         pass
 
 
+# GitHub rejects comments over 65,536 characters; keep some headroom for the marker.
+CONTENT_COMMENT_MAX_LENGTH = 60000
+CONTENT_COMMENT_MARKER = "<!-- type: original_content -->"
+
+
+def build_original_content_comment(text: str | None) -> str | None:
+    """Return the comment body that preserves `text`.
+
+    Returns None when there is nothing to keep or when the text is too long to fit
+    in a single comment; the original URL is already recorded in the issue.
+    """
+    if not text:
+        return None
+    if len(text) > CONTENT_COMMENT_MAX_LENGTH:
+        logger.warning(
+            "Skip recording original content: %d characters exceeds %d",
+            len(text),
+            CONTENT_COMMENT_MAX_LENGTH,
+        )
+        return None
+    return f"{CONTENT_COMMENT_MARKER}\n{text}"
+
+
 # TODO: Consider renaming this class to ReviewIssueStorage or similar in the future.
 class PersonalStorage:
     # Repository IDs for separation
@@ -145,6 +168,22 @@ class PersonalStorage:
             ).execute(self._client)
             bb.personal_archive.takeaways_comment_oid = comment_resp.id
             bb.personal_archive.takeaways_comment_url = comment_resp.url
+
+        # Add original content as a comment if available
+        self._add_original_content_comment(bb, issue_oid)
+
+    def _add_original_content_comment(self, bb: Blackboard, issue_oid: str) -> None:
+        """Preserve the extracted text as a comment; failure must not abort archiving."""
+        body = build_original_content_comment((bb.trafilatura or {}).get("text"))
+        if body is None:
+            return
+        try:
+            resp = AddIssueComment(subjectId=issue_oid, body=body).execute(self._client)
+        except Exception as e:
+            logger.warning("Failed to record original content: %s", e)
+            return
+        bb.personal_archive.content_comment_oid = resp.id
+        bb.personal_archive.content_comment_url = resp.url
 
 
 def send_to_personal(bb: Blackboard, dry_run: bool) -> None:
