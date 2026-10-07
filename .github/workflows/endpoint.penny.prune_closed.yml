@@ -1,0 +1,33 @@
+name: 'EP/penny/prune_closed'
+
+on:
+  schedule:
+    # 04:00 KST every day (KST is UTC+9, so this is 19:00 UTC of the previous day).
+    - cron: '0 19 * * *'
+  # schedule/ END
+  workflow_dispatch:
+  # workflow_dispatch/ END
+# on/ END
+
+# Never run two deletions at the same time.
+concurrency:
+  group: 'penny-prune-closed'
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: 0.9.22
+
+      - name: 'Install tools'
+        run: uv tool install --force ./
+
+      - name: 'Prune closed items'
+        # GITHUB_GRAPHQL_URL is a default environment variable of GitHub Actions.
+        env:
+          OWNER_TOKEN: ${{ secrets.TOKEN }}
+        run: endpoint-penny-prune-closed --no-dry-run
