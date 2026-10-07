@@ -11,7 +11,7 @@ from pydantic import field_validator
 
 
 class OtherMetadata(BaseModel):
-    key_sentences: list[str] = Field(default_factory=list)
+    takeaways_sentences: list[str] = Field(default_factory=list)
 
 
 class ArxivMetadata(BaseModel):
