@@ -11,7 +11,7 @@ from pydantic import field_validator
 
 
 class OtherMetadata(BaseModel):
-    key_sentences: list[str] = Field(default_factory=list)
+    takeaways_sentences: list[str] = Field(default_factory=list)
 
 
 class ArxivMetadata(BaseModel):
@@ -25,10 +25,10 @@ class PersonalArchiveMetadata(BaseModel):
     # (e.g., in logging or f-strings) while still ensuring data integrity
     # through validation during assignment.
     issue_url: str | None = None
-    comment_oid: str | None = None
-    comment_url: str | None = None
+    takeaways_comment_oid: str | None = None
+    takeaways_comment_url: str | None = None
 
-    @field_validator("issue_url", "comment_url")
+    @field_validator("issue_url", "takeaways_comment_url")
     @classmethod
     def validate_url(cls, v: str | None) -> str | None:
         if v is not None:
