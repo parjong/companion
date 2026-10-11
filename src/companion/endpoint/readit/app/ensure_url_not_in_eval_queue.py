@@ -8,6 +8,7 @@ from companion.endpoint.readit.core import Blackboard
 from companion.endpoint.readit.steps.ensure import EnsureStep
 from companion.endpoint.readit.steps.ensure import AlreadyInQueueError
 from companion.connectors.github import make_client
+from companion.endpoint.readit.eval_queue import EvalQueue
 
 logger = getLogger(__name__)
 
@@ -25,7 +26,7 @@ def main(input_path: str) -> None:
     with open(input_path, "r") as f:
         bb = Blackboard.from_pipeline_file(f)
 
-    ensure_step = EnsureStep(client)
+    ensure_step = EnsureStep(EvalQueue(client))
     try:
         ensure_step(bb)
     except AlreadyInQueueError:

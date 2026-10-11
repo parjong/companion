@@ -4,9 +4,29 @@ from companion.endpoint.readit.core import Blackboard
 from companion.connectors.github import IssueSearchHit
 from companion.connectors.github import SearchIssuesByBody
 from companion.endpoint.readit.steps.ensure import AlreadyArchivedError
+from companion.endpoint.readit.steps.ensure import AlreadyInQueueError
+from companion.endpoint.readit.steps.ensure import EnsureStep
 from companion.endpoint.readit.steps.ensure import EnsureNotArchivedStep
 
 URL = "https://example.com/post?id=1"
+
+
+class FakeQueue:
+    def __init__(self, urls):
+        self._urls = urls
+
+    def get_urls(self):
+        return self._urls
+
+
+def test_url_not_in_queue_passes_through():
+    bb = Blackboard(url=URL)
+    assert EnsureStep(FakeQueue([]))(bb) is bb
+
+
+def test_url_in_queue_raises():
+    with pytest.raises(AlreadyInQueueError):
+        EnsureStep(FakeQueue([URL]))(Blackboard(url=URL))
 
 
 def stub_search(monkeypatch, hits):

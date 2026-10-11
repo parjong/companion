@@ -1,25 +1,19 @@
 from logging import getLogger
+from typing import Protocol
+
 from gql import Client
 
 from companion.endpoint.readit.core import Blackboard
 from companion.endpoint.readit.core import Step
-from companion.connectors.github import ListProjectV2ItemFieldValues
 from companion.connectors.github import SearchIssuesByBody
 
 logger = getLogger(__name__)
 
 
-class EvalQueue:
-    PROJECT_ID = "PVT_kwHOAOPA3c4BSAfY"
-    URL_FIELD_ID = "PVTF_lAHOAOPA3c4BSAfYzg_quM8"
+class EvalQueueContract(Protocol):
+    """What this step requires of the evaluation queue: only the methods it uses."""
 
-    def __init__(self, client: Client):
-        self._client = client
-
-    def get_urls(self) -> list[str]:
-        return ListProjectV2ItemFieldValues(
-            projectId=self.PROJECT_ID, fieldId=self.URL_FIELD_ID
-        ).execute(self._client)
+    def get_urls(self) -> list[str]: ...
 
 
 class AlreadyInQueueError(Exception):
@@ -31,8 +25,8 @@ class AlreadyInQueueError(Exception):
 class EnsureStep(Step):
     """Pipeline step that checks if the URL is already present in the evaluation queue."""
 
-    def __init__(self, client: Client):
-        self._client = client
+    def __init__(self, queue: EvalQueueContract):
+        self._queue = queue
 
     def __call__(self, bb: Blackboard) -> Blackboard:
         """Pipeline step that checks if the URL is already present in the evaluation queue.
@@ -49,8 +43,7 @@ class EnsureStep(Step):
         url_to_check = str(bb.url)
         logger.info("Checking URL: %s", url_to_check)
 
-        queue = EvalQueue(self._client)
-        urls_in_queue = queue.get_urls()
+        urls_in_queue = self._queue.get_urls()
 
         if url_to_check in urls_in_queue:
             raise AlreadyInQueueError(

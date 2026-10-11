@@ -6,6 +6,7 @@ import os
 from companion.endpoint.readit.core import Blackboard
 from companion.endpoint.readit.steps.add_queue import AddQueueStep
 from companion.connectors.github import make_client
+from companion.endpoint.readit.eval_queue import EvalQueue
 
 logger = getLogger(__name__)
 
@@ -25,7 +26,7 @@ def main(summary_path: str) -> None:
 
     logger.info("blackboard = '%s'", bb)
 
-    add_queue_step = AddQueueStep(client)
+    add_queue_step = AddQueueStep(EvalQueue(client))
     add_queue_step(bb)
 
     logger.info("Done")
