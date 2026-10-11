@@ -1,0 +1,45 @@
+name: 'EP/readit/eval_queue/prune'
+
+on:
+  schedule:
+    # 05:00 KST every day (KST is UTC+9, so this is 20:00 UTC of the previous day).
+    - cron: '0 20 * * *'
+  # schedule/ END
+  workflow_dispatch:
+    inputs:
+      max_age_days:
+        description: 'Remove items added more than this many days ago'
+        required: false
+        default: '30'
+      limit:
+        description: 'Maximum number of items to remove in one run'
+        required: false
+        default: '100'
+    # inputs/ END
+  # workflow_dispatch/ END
+# on/ END
+
+# Never run two deletions at the same time.
+concurrency:
+  group: 'readit-eval-queue-prune'
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: 0.9.22
+
+      - name: 'Install tools'
+        run: uv tool install --force ./
+
+      - name: 'Prune eval queue'
+        # GITHUB_GRAPHQL_URL is a default environment variable of GitHub Actions.
+        env:
+          OWNER_TOKEN: ${{ secrets.TOKEN }}
+          MAX_AGE_DAYS: ${{ github.event.inputs.max_age_days || '30' }}
+          LIMIT: ${{ github.event.inputs.limit || '100' }}
+        run: endpoint-readit-prune-eval-queue --max-age-days "$MAX_AGE_DAYS" --limit "$LIMIT" --no-dry-run
