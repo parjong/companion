@@ -13,6 +13,7 @@ from companion.endpoint.readit.steps.summarize import SummarizeStep
 from companion.endpoint.readit.steps.add_queue import AddQueueStep
 from companion.endpoint.readit.steps.send import SendStep
 from companion.connectors.github import make_client
+from companion.endpoint.readit.eval_queue import EvalQueue
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -90,6 +91,8 @@ def main(
     owner_token = os.environ["OWNER_TOKEN"]
     client = make_client(url=github_graphql_url, token=owner_token)
 
+    queue = EvalQueue(client)
+
     bb = Blackboard(url=url)
 
     logger.info("Starting pipeline for URL: %s", url)
@@ -97,11 +100,11 @@ def main(
     # Execute flat pipeline
     bb = FetchStep()(bb)
     bb = SaveStep(fetch_path, "fetched")(bb)
-    bb = EnsureStep(client)(bb)
+    bb = EnsureStep(queue)(bb)
     bb = EnsureNotArchivedStep(client)(bb)
     bb = SummarizeStep()(bb)
     bb = SaveStep(summary_path, "summarized")(bb)
-    bb = AddQueueStep(client)(bb)
+    bb = AddQueueStep(queue)(bb)
     bb = SendStep(dry_run=dry_run)(bb)
 
     logger.info("Pipeline completed successfully.")
