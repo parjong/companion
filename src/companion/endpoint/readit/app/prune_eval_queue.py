@@ -9,7 +9,9 @@ from companion.endpoint.readit.steps.prune import PruneQueueStep
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())
+logging.getLogger("companion.endpoint").setLevel(
+    os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper()
+)
 
 
 @click.command()
