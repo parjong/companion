@@ -5,7 +5,10 @@ from datetime import timezone
 from gql import Client
 
 from companion.connectors.github import AddProjectV2DraftIssue
+from companion.connectors.github import DeleteProjectV2Item
+from companion.connectors.github import ListProjectV2ItemDateValues
 from companion.connectors.github import ListProjectV2ItemFieldValues
+from companion.connectors.github import ProjectItemDate
 from companion.connectors.github import ProjectItemID
 from companion.connectors.github import UpdateDateFieldValue
 from companion.connectors.github import UpdateTextFieldValue
@@ -68,3 +71,13 @@ class EvalQueue:
             fieldId=self.ADDED_AT_FIELD_ID,
             value=now_kst,
         ).execute(self._client)
+
+    def list_items(self) -> list[ProjectItemDate]:
+        return ListProjectV2ItemDateValues(
+            projectId=self.PROJECT_ID, fieldId=self.ADDED_AT_FIELD_ID
+        ).execute(self._client)
+
+    def remove(self, item: ProjectItemDate) -> None:
+        DeleteProjectV2Item(projectId=self.PROJECT_ID, itemId=item.id).execute(
+            self._client
+        )
