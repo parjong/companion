@@ -135,16 +135,16 @@ class PersonalStorage:
         bb.personal_archive.issue_oid = issue_oid
         bb.personal_archive.issue_url = issue_resp.url
 
-        # Add key sentences as a comment if available
-        key_sentences = bb.other.key_sentences if bb.other else []
-        if key_sentences:
-            comment_body = "\n".join([f"- {s}" for s in key_sentences])
+        # Add takeaways as a comment if available
+        takeaways_sentences = bb.other.takeaways_sentences if bb.other else []
+        if takeaways_sentences:
+            comment_body = "\n".join([f"- {s}" for s in takeaways_sentences])
             comment_resp = AddIssueComment(
                 subjectId=issue_oid,
                 body=comment_body,
             ).execute(self._client)
-            bb.personal_archive.comment_oid = comment_resp.id
-            bb.personal_archive.comment_url = comment_resp.url
+            bb.personal_archive.takeaways_comment_oid = comment_resp.id
+            bb.personal_archive.takeaways_comment_url = comment_resp.url
 
 
 def send_to_personal(bb: Blackboard, dry_run: bool) -> None:

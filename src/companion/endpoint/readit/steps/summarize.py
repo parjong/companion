@@ -27,7 +27,7 @@ class Summary(BaseModel):
     date: str = Field(
         description="The issue or publication date as YYYY/MM/DD format (????/??/?? if unknown)"
     )
-    key_sentences: list[str] = Field(
+    takeaways_sentences: list[str] = Field(
         description="Up to 3 most important sentences extracted exactly from the content"
     )
 
@@ -61,7 +61,7 @@ _PROMPT = ChatPromptTemplate.from_template("""
     - Do NOT summarize or rephrase the sentences.
     - Provide them as a list of strings.
 
-    Format your answer as a JSON object with keys "date", "title", and "key_sentences".
+    Format your answer as a JSON object with keys "date", "title", and "takeaways_sentences".
 
     Content: {content}
     """)
@@ -77,7 +77,7 @@ _FALLBACK_PROMPT = ChatPromptTemplate.from_template("""
     - Calculate absolute dates from relative expressions.
     - Return "????/??/??" if not found.
 
-    Format: JSON object with "date", "title" (use current: {current_title}), and "key_sentences" (provide empty list []).
+    Format: JSON object with "date", "title" (use current: {current_title}), and "takeaways_sentences" (provide empty list []).
 
     Raw HTML: {html}
     """)
@@ -126,7 +126,7 @@ def page_of_(bb: Blackboard) -> Blackboard:
         update={
             "title": summary.title,
             "date": summary.date,
-            "other": OtherMetadata(key_sentences=summary.key_sentences),
+            "other": OtherMetadata(takeaways_sentences=summary.takeaways_sentences),
         }
     )
 
