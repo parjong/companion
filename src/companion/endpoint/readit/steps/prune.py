@@ -34,9 +34,11 @@ def select_expired(
     Items without an 'Added At' date are never selected.
     """
     cutoff = today - timedelta(days=max_age_days)
-    expired = [i for i in items if i.date and date.fromisoformat(i.date) < cutoff]
-    expired.sort(key=lambda i: i.date)
-    return expired[:limit]
+    dated = [(date.fromisoformat(i.date), i) for i in items if i.date]
+    expired = sorted(
+        ((added, i) for added, i in dated if added < cutoff), key=lambda pair: pair[0]
+    )
+    return [i for _, i in expired][:limit]
 
 
 class PruneQueueStep:

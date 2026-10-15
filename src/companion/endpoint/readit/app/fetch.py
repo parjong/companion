@@ -2,6 +2,7 @@ import os
 from logging import getLogger
 
 import click
+from pydantic import HttpUrl
 
 from companion.endpoint.readit.core import Blackboard
 from companion.endpoint.readit.steps.fetch import FetchStep
@@ -14,7 +15,7 @@ logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())
 @click.option("-o", "output_path", required=True)
 @click.argument("url")
 def main(output_path: str, url: str) -> None:
-    bb = Blackboard(url=url)
+    bb = Blackboard(url=HttpUrl(url))
     fetch_step = FetchStep()
     bb = fetch_step(bb)
 

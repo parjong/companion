@@ -1,3 +1,4 @@
+from pydantic import HttpUrl
 from unittest.mock import patch
 from companion.endpoint.readit.core import Blackboard
 from companion.endpoint.readit.core import OtherMetadata
@@ -17,7 +18,7 @@ def test_send_to_personal_other_article(monkeypatch):
     monkeypatch.setenv("OWNER_TOKEN", "dummy-token")
 
     bb = Blackboard(
-        url="https://example.com/some-article",
+        url=HttpUrl("https://example.com/some-article"),
         kind="other",
         title="Some Test Article",
         date="2026/05/18",
@@ -72,7 +73,7 @@ def test_send_to_personal_skips_too_long_content(monkeypatch):
     monkeypatch.setenv("OWNER_TOKEN", "dummy-token")
 
     bb = Blackboard(
-        url="https://example.com/long-article",
+        url=HttpUrl("https://example.com/long-article"),
         kind="other",
         title="Long Test Article",
         date="2026/05/18",
@@ -93,7 +94,7 @@ def test_send_to_personal_records_content_at_limit(monkeypatch):
     monkeypatch.setenv("OWNER_TOKEN", "dummy-token")
 
     bb = Blackboard(
-        url="https://example.com/a",
+        url=HttpUrl("https://example.com/a"),
         kind="other",
         title="T",
         date="2026/05/18",
@@ -115,7 +116,7 @@ def test_send_to_personal_content_failure_is_tolerated(monkeypatch):
     monkeypatch.setenv("OWNER_TOKEN", "dummy-token")
 
     bb = Blackboard(
-        url="https://example.com/a",
+        url=HttpUrl("https://example.com/a"),
         kind="other",
         title="T",
         date="2026/05/18",
