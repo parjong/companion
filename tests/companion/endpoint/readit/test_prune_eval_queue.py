@@ -2,8 +2,8 @@ from datetime import date
 
 from companion.endpoint.readit.steps import prune
 
-from companion.connectors.github import ProjectItemDate
-from companion.connectors.github import ProjectItemID
+from companion.connectors.github.project import ProjectItemDate
+from companion.connectors.github.project import ProjectItemID
 from companion.endpoint.readit.steps.prune import PruneQueueStep
 from companion.endpoint.readit.steps.prune import select_expired
 

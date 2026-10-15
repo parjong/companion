@@ -1,5 +1,3 @@
-from gql import gql
-
 from logging import getLogger
 import os
 
@@ -7,11 +5,12 @@ from contextlib import ExitStack
 from unittest.mock import patch
 
 from companion.endpoint.readit.core import Blackboard
-from companion.connectors.github import CreateIssue
-from companion.connectors.github import CreateIssueResponse
-from companion.connectors.github import AddIssueComment
-from companion.connectors.github import AddIssueCommentResponse
-from companion.connectors.github import make_client
+from companion.connectors.github.issue import CreateIssue
+from companion.connectors.github.issue import CreateIssueResponse
+from companion.connectors.github.issue import AddIssueComment
+from companion.connectors.github.issue import AddIssueCommentResponse
+from companion.connectors.github.client import make_client
+from companion.connectors.github.discussion import CreateDiscussion
 
 logger = getLogger(__name__)
 logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())
@@ -35,32 +34,6 @@ def mock_add_issue_comment_execute(self, client) -> AddIssueCommentResponse:
 def mock_create_discussion_execute(self, client) -> None:
     title = self._values["title"]
     logger.info(f"  [Dry Run] Would create Discussion: '{title}'")
-
-
-class CreateDiscussion:
-    QUERY = gql("""
-    mutation ($repositoryId: ID!, $categoryId: ID!, $title: String!, $body: String!) {
-      createDiscussion(input: {
-          repositoryId: $repositoryId,
-          categoryId: $categoryId,
-          title: $title,
-          body: $body
-      }) { discussion { id } }
-    }
-    """)
-
-    def __init__(self, *, repositoryId: str, categoryId: str, title: str, body: str):
-        self._values = {
-            "repositoryId": repositoryId,
-            "categoryId": categoryId,
-            "title": title,
-            "body": body,
-        }
-
-    def execute(self, client):
-        result = client.execute(self.QUERY, variable_values=self._values)
-        logger.debug(result)
-        pass
 
 
 # GitHub rejects comments over 65,536 characters; keep some headroom for the marker.

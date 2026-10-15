@@ -5,8 +5,8 @@ from pydantic import HttpUrl
 from gql import Client
 
 from companion.endpoint.readit.core import Blackboard
-from companion.connectors.github import IssueSearchHit
-from companion.connectors.github import SearchIssuesByBody
+from companion.connectors.github.issue import IssueSearchHit
+from companion.connectors.github.issue import SearchIssuesByBody
 from companion.endpoint.readit.steps.ensure import AlreadyArchivedError
 from companion.endpoint.readit.steps.ensure import AlreadyInQueueError
 from companion.endpoint.readit.steps.ensure import EnsureStep

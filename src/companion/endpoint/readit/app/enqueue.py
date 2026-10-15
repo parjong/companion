@@ -13,7 +13,7 @@ from companion.endpoint.readit.steps.ensure import EnsureNotArchivedStep
 from companion.endpoint.readit.steps.summarize import SummarizeStep
 from companion.endpoint.readit.steps.add_queue import AddQueueStep
 from companion.endpoint.readit.steps.send import SendStep
-from companion.connectors.github import make_client
+from companion.connectors.github.client import make_client
 from companion.endpoint.readit.eval_queue import EvalQueue
 
 logging.basicConfig(level=logging.INFO)

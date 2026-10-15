@@ -7,7 +7,7 @@ import sys
 from companion.endpoint.readit.core import Blackboard
 from companion.endpoint.readit.steps.ensure import EnsureStep
 from companion.endpoint.readit.steps.ensure import AlreadyInQueueError
-from companion.connectors.github import make_client
+from companion.connectors.github.client import make_client
 from companion.endpoint.readit.eval_queue import EvalQueue
 
 logger = getLogger(__name__)

@@ -6,7 +6,7 @@ from datetime import timezone
 from logging import getLogger
 from typing import Protocol
 
-from companion.connectors.github import ProjectItemDate
+from companion.connectors.github.project import ProjectItemDate
 
 logger = getLogger(__name__)
 

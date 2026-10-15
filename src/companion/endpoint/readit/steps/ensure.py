@@ -5,7 +5,7 @@ from gql import Client
 
 from companion.endpoint.readit.core import Blackboard
 from companion.endpoint.readit.core import Step
-from companion.connectors.github import SearchIssuesByBody
+from companion.connectors.github.issue import SearchIssuesByBody
 
 logger = getLogger(__name__)
 

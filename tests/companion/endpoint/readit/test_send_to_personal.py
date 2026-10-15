@@ -8,8 +8,8 @@ from companion.endpoint.readit.app.send_to_personal import (
     build_original_content_comment,
 )
 from companion.endpoint.readit.app.send_to_personal import send_to_personal
-from companion.connectors.github import AddIssueCommentResponse
-from companion.connectors.github import CreateIssueResponse
+from companion.connectors.github.issue import AddIssueCommentResponse
+from companion.connectors.github.issue import CreateIssueResponse
 
 
 def test_send_to_personal_other_article(monkeypatch):
@@ -62,8 +62,13 @@ def _patch_github(bodies, fail_on=None):
         )
 
     return (
-        patch("companion.connectors.github.CreateIssue.execute", mock_create_issue),
-        patch("companion.connectors.github.AddIssueComment.execute", mock_add_comment),
+        patch(
+            "companion.connectors.github.issue.CreateIssue.execute", mock_create_issue
+        ),
+        patch(
+            "companion.connectors.github.issue.AddIssueComment.execute",
+            mock_add_comment,
+        ),
     )
 
 
