@@ -1,5 +1,7 @@
 import pytest
 
+from companion.connectors.github.project import ListProjectV2ItemDateValues
+from companion.connectors.github.project import ListProjectV2ItemFieldValues
 from companion.connectors.github.project import ListProjectV2Items
 from companion.connectors.github.project import ProjectNotFoundError
 from companion.connectors.github.project import ProjectItemKind
@@ -84,3 +86,81 @@ def test_raises_a_clear_error_when_the_project_is_not_found():
 
     with pytest.raises(ProjectNotFoundError, match="PVT_project"):
         ListProjectV2Items(projectId="PVT_project").execute(NotFoundClient())
+
+
+class NotFoundClient:
+    def execute(self, query, variable_values):
+        return {"node": None}
+
+
+@pytest.mark.parametrize(
+    "operation",
+    [
+        ListProjectV2Items(projectId="PVT_project"),
+        ListProjectV2ItemFieldValues(projectId="PVT_project", fieldId="F"),
+        ListProjectV2ItemDateValues(projectId="PVT_project", fieldId="F"),
+    ],
+)
+def test_every_list_operation_raises_when_the_project_is_not_found(operation):
+    with pytest.raises(ProjectNotFoundError, match="PVT_project"):
+        operation.execute(NotFoundClient())
+
+
+class TwoPageClient:
+    def __init__(self, pages):
+        self._pages = pages
+        self._served = 0
+
+    def execute(self, query, variable_values):
+        page = self._pages[self._served]
+        self._served += 1
+        return {
+            "node": {
+                "items": {
+                    "pageInfo": {
+                        "hasNextPage": self._served < len(self._pages),
+                        "endCursor": "next",
+                    },
+                    "nodes": page,
+                }
+            }
+        }
+
+
+def test_list_items_collects_items_of_every_page():
+    pages = [
+        [{"id": "A", "content": {"__typename": "DraftIssue", "title": "a"}}],
+        [{"id": "B", "content": {"__typename": "DraftIssue", "title": "b"}}],
+    ]
+
+    items = ListProjectV2Items(projectId="PVT_project").execute(TwoPageClient(pages))
+
+    assert [i.id for i in items] == ["A", "B"]
+
+
+def test_list_date_values_collects_dates_of_every_page():
+    def node(item_id, date):
+        value = {"date": date, "field": {"id": "F"}}
+        return {"id": item_id, "fieldValues": {"nodes": [None, value]}}
+
+    pages = [[node("A", "2026-01-01")], [node("B", None)]]
+
+    dates = ListProjectV2ItemDateValues(projectId="PVT_project", fieldId="F").execute(
+        TwoPageClient(pages)
+    )
+
+    assert [(d.id, d.date) for d in dates] == [("A", "2026-01-01"), ("B", None)]
+
+
+def test_list_field_values_collects_text_of_every_page():
+    def node(text):
+        value = {"text": text, "field": {"id": "F"}}
+        return {"fieldValues": {"nodes": [value]}}
+
+    pages = [[node("a")], [node("b")]]
+
+    texts = ListProjectV2ItemFieldValues(projectId="PVT_project", fieldId="F").execute(
+        TwoPageClient(pages)
+    )
+
+    assert texts == ["a", "b"]
