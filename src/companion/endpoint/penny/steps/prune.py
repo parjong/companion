@@ -4,9 +4,9 @@ from dataclasses import field
 from logging import getLogger
 from gql import Client
 
-from companion.connectors.github import DeleteProjectV2Item
-from companion.connectors.github import ListProjectV2Items
-from companion.connectors.github import ProjectItem
+from companion.connectors.github.project import DeleteProjectV2Item
+from companion.connectors.github.project import ListProjectV2Items
+from companion.connectors.github.project import ProjectItem
 
 logger = getLogger(__name__)
 logger.setLevel(os.environ.get("ENTRYPOINT_LOG_LEVEL", "INFO").upper())

@@ -1,9 +1,9 @@
 import pytest
 
-from companion.connectors.github import ListProjectV2Items
-from companion.connectors.github import ProjectNotFoundError
-from companion.connectors.github import ProjectItemKind
-from companion.connectors.github import ProjectItemState
+from companion.connectors.github.project import ListProjectV2Items
+from companion.connectors.github.project import ProjectNotFoundError
+from companion.connectors.github.project import ProjectItemKind
+from companion.connectors.github.project import ProjectItemState
 
 
 class FakeClient:

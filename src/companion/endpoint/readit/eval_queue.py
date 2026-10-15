@@ -4,14 +4,14 @@ from datetime import timezone
 
 from gql import Client
 
-from companion.connectors.github import AddProjectV2DraftIssue
-from companion.connectors.github import DeleteProjectV2Item
-from companion.connectors.github import ListProjectV2ItemDateValues
-from companion.connectors.github import ListProjectV2ItemFieldValues
-from companion.connectors.github import ProjectItemDate
-from companion.connectors.github import ProjectItemID
-from companion.connectors.github import UpdateDateFieldValue
-from companion.connectors.github import UpdateTextFieldValue
+from companion.connectors.github.project import AddProjectV2DraftIssue
+from companion.connectors.github.project import DeleteProjectV2Item
+from companion.connectors.github.project import ListProjectV2ItemDateValues
+from companion.connectors.github.project import ListProjectV2ItemFieldValues
+from companion.connectors.github.project import ProjectItemDate
+from companion.connectors.github.project import ProjectItemID
+from companion.connectors.github.project import UpdateDateFieldValue
+from companion.connectors.github.project import UpdateTextFieldValue
 
 
 class EvalQueue:

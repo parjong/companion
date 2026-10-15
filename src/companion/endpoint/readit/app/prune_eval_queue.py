@@ -3,7 +3,7 @@ import os
 
 import click
 
-from companion.connectors.github import make_client
+from companion.connectors.github.client import make_client
 from companion.endpoint.readit.eval_queue import EvalQueue
 from companion.endpoint.readit.steps.prune import PruneQueueStep
 

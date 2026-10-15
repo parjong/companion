@@ -5,7 +5,7 @@ import os
 
 from companion.endpoint.readit.core import Blackboard
 from companion.endpoint.readit.steps.add_queue import AddQueueStep
-from companion.connectors.github import make_client
+from companion.connectors.github.client import make_client
 from companion.endpoint.readit.eval_queue import EvalQueue
 
 logger = getLogger(__name__)

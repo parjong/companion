@@ -2,8 +2,8 @@ import logging
 import os
 import click
 
-from companion.connectors.github import ProjectNotFoundError
-from companion.connectors.github import make_client
+from companion.connectors.github.project import ProjectNotFoundError
+from companion.connectors.github.client import make_client
 from companion.endpoint.penny.steps.prune import PruneClosedStep
 
 logging.basicConfig(level=logging.INFO)
