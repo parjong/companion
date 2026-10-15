@@ -4,6 +4,8 @@ from gql import gql
 from typing import NewType
 from logging import getLogger
 
+from companion.connectors.github.pagination import paginate
+
 logger = getLogger(__name__)
 
 ProjectItemID = NewType("ProjectItemID", str)
@@ -99,30 +101,16 @@ class ListProjectV2ItemFieldValues:
 
     def execute(self, client) -> list[str]:
         values = []
-        after = None
-        has_next_page = True
-
-        while has_next_page:
-            result = client.execute(
-                self.QUERY,
-                variable_values={
-                    "projectId": self._projectId,
-                    "after": after,
-                },
-            )
-            items_data = result["node"]["items"]
-            for item in items_data["nodes"]:
-                for field_value in item["fieldValues"]["nodes"]:
-                    if not field_value:
-                        continue
-                    if field_value.get("field", {}).get("id") == self._fieldId:
-                        text = field_value.get("text")
-                        if text is not None:
-                            values.append(text)
-
-            page_info = items_data["pageInfo"]
-            has_next_page = page_info["hasNextPage"]
-            after = page_info["endCursor"]
+        for item in _paginate_project_items(
+            client, self.QUERY, {"projectId": self._projectId}
+        ):
+            for field_value in item["fieldValues"]["nodes"]:
+                if not field_value:
+                    continue
+                if field_value.get("field", {}).get("id") == self._fieldId:
+                    text = field_value.get("text")
+                    if text is not None:
+                        values.append(text)
 
         return values
 
@@ -223,6 +211,24 @@ class ProjectNotFoundError(Exception):
     """Raised when GitHub returns no Project for the ID, e.g. a wrong ID or no access."""
 
 
+def _paginate_project_items(client, query, variables):
+    """Yields every node of 'items' of the Project named by variables["projectId"].
+
+    Raises:
+        ProjectNotFoundError: If GitHub returns no Project for the ID.
+    """
+
+    def items_connection(result):
+        if result["node"] is None:
+            raise ProjectNotFoundError(
+                f"Project {variables['projectId']} was not found or is not accessible "
+                "with this token."
+            )
+        return result["node"]["items"]
+
+    return paginate(client, query, variables, connection=items_connection)
+
+
 class ListProjectV2Items:
     # https://docs.github.com/en/graphql/reference/objects#projectv2itemconnection
     QUERY = gql("""
@@ -256,39 +262,19 @@ class ListProjectV2Items:
 
     def execute(self, client) -> list[ProjectItem]:
         items = []
-        after = None
-        has_next_page = True
-
-        while has_next_page:
-            result = client.execute(
-                self.QUERY,
-                variable_values={
-                    "projectId": self._projectId,
-                    "after": after,
-                    "query": self._query,
-                },
+        for node in _paginate_project_items(
+            client, self.QUERY, {"projectId": self._projectId, "query": self._query}
+        ):
+            content = node["content"] or {}
+            items.append(
+                ProjectItem(
+                    id=ProjectItemID(node["id"]),
+                    kind=ProjectItemKind(content.get("__typename", "Redacted")),
+                    title=content.get("title"),
+                    url=content.get("url"),
+                    state=ProjectItemState(content.get("state", "NONE")),
+                )
             )
-            if result["node"] is None:
-                raise ProjectNotFoundError(
-                    f"Project {self._projectId} was not found or is not accessible "
-                    "with this token."
-                )
-            items_data = result["node"]["items"]
-            for node in items_data["nodes"]:
-                content = node["content"] or {}
-                items.append(
-                    ProjectItem(
-                        id=ProjectItemID(node["id"]),
-                        kind=ProjectItemKind(content.get("__typename", "Redacted")),
-                        title=content.get("title"),
-                        url=content.get("url"),
-                        state=ProjectItemState(content.get("state", "NONE")),
-                    )
-                )
-
-            page_info = items_data["pageInfo"]
-            has_next_page = page_info["hasNextPage"]
-            after = page_info["endCursor"]
 
         return items
 
@@ -337,30 +323,16 @@ class ListProjectV2ItemDateValues:
 
     def execute(self, client) -> list[ProjectItemDate]:
         items = []
-        after = None
-        has_next_page = True
-
-        while has_next_page:
-            result = client.execute(
-                self.QUERY,
-                variable_values={
-                    "projectId": self._projectId,
-                    "after": after,
-                },
-            )
-            items_data = result["node"]["items"]
-            for item in items_data["nodes"]:
-                date = None
-                for field_value in item["fieldValues"]["nodes"]:
-                    if not field_value:
-                        continue
-                    if field_value.get("field", {}).get("id") == self._fieldId:
-                        date = field_value.get("date")
-                items.append(ProjectItemDate(id=ProjectItemID(item["id"]), date=date))
-
-            page_info = items_data["pageInfo"]
-            has_next_page = page_info["hasNextPage"]
-            after = page_info["endCursor"]
+        for item in _paginate_project_items(
+            client, self.QUERY, {"projectId": self._projectId}
+        ):
+            date = None
+            for field_value in item["fieldValues"]["nodes"]:
+                if not field_value:
+                    continue
+                if field_value.get("field", {}).get("id") == self._fieldId:
+                    date = field_value.get("date")
+            items.append(ProjectItemDate(id=ProjectItemID(item["id"]), date=date))
 
         return items
 
