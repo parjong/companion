@@ -2,6 +2,7 @@ import functools
 import logging
 import os
 import click
+from pydantic import HttpUrl
 from companion.endpoint.readit.core import Blackboard
 from companion.endpoint.readit.core import Step
 from companion.endpoint.readit.steps.fetch import FetchStep
@@ -93,7 +94,7 @@ def main(
 
     queue = EvalQueue(client)
 
-    bb = Blackboard(url=url)
+    bb = Blackboard(url=HttpUrl(url))
 
     logger.info("Starting pipeline for URL: %s", url)
 

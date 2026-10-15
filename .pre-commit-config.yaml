@@ -30,6 +30,14 @@ repos:
         entry: uv run ruff check
       # ruff-check/ END
 
+      - id: pyright
+        name: 'Run pyright'
+        types: [python]
+        language: system
+        entry: uv run pyright
+        pass_filenames: false
+      # pyright/ END
+
       - id: pytest
         name: 'Run pytest'
         types: [python]

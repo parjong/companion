@@ -302,7 +302,7 @@ class _TolerantStrEnum(StrEnum):
     @classmethod
     def _missing_(cls, value):
         logger.warning("Unknown %s value: %r", cls.__name__, value)
-        return cls.UNKNOWN
+        return cls["UNKNOWN"]
 
 
 class ProjectItemKind(_TolerantStrEnum):

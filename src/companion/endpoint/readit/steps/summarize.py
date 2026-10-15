@@ -1,4 +1,5 @@
 from typing import IO
+from typing import Any
 
 import arxiv
 import datetime
@@ -8,6 +9,7 @@ from urllib.parse import urlparse
 
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import Runnable
 from pydantic import BaseModel
 from pydantic import Field
 
@@ -84,6 +86,14 @@ _FALLBACK_PROMPT = ChatPromptTemplate.from_template("""
 _FALLBACK_CHAIN = _FALLBACK_PROMPT | _STRUCTURED_LLM
 
 
+def _summarize(chain: Runnable[Any, Any], variables: dict[str, str | None]) -> Summary:
+    """Invokes a chain built on '_STRUCTURED_LLM', which yields a Summary."""
+    result = chain.invoke(variables)
+    if not isinstance(result, Summary):
+        raise TypeError(f"Expected a Summary but got {type(result).__name__}")
+    return result
+
+
 def page_of_(bb: Blackboard) -> Blackboard:
     if not bb.html:
         raise ValueError(f"No HTML content available for summarization: {bb.url}")
@@ -99,12 +109,13 @@ def page_of_(bb: Blackboard) -> Blackboard:
     # Get date hint from trafilatura metadata
     date_hint = (bb.trafilatura or {}).get("date") or "Unknown"
 
-    summary = _CHAIN.invoke(
+    summary = _summarize(
+        _CHAIN,
         {
             "content": content,
             "today": today,
             "date_hint": date_hint,
-        }
+        },
     )
 
     # Fallback stage: if date is unknown, try parsing raw HTML
@@ -112,12 +123,13 @@ def page_of_(bb: Blackboard) -> Blackboard:
         logger.info(
             "First inference failed to find date. Triggering fallback with raw HTML..."
         )
-        fallback_res = _FALLBACK_CHAIN.invoke(
+        fallback_res = _summarize(
+            _FALLBACK_CHAIN,
             {
                 "html": bb.html,
                 "today": today,
                 "current_title": summary.title,
-            }
+            },
         )
         logger.info(f"Fallback result: {fallback_res.date}")
         summary.date = fallback_res.date

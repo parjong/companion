@@ -47,7 +47,7 @@ class Blackboard(BaseModel):
     # TODO: Consider allowing None to represent 'not yet categorized' state
     kind: str = "other"
 
-    arxiv: ArxivMetadata | None = Field(None)
+    arxiv: ArxivMetadata | None = None
     other: OtherMetadata | None = Field(default_factory=OtherMetadata)
 
     # Reserved for 'send' step
