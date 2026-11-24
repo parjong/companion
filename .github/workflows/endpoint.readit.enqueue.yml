@@ -1,5 +1,8 @@
 name: 'EP/readit/enqueue'
 
+# Only register the URL in the INBOX project.
+# Duplicates are handled, and the URL is processed, by parjong-org/kompa.
+
 on:
   workflow_dispatch:
     inputs:
@@ -14,43 +17,13 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
-    env:
-      INPUT_URL: ${{ github.event.inputs.url }}
-
-      # Intermediate files
-      FETCH_FILE: '/tmp/fetch.json'
-      SUMMARY_FILE: '/tmp/summary.json'
     steps:
-      - name: 'Show input url'
-        run: echo "$INPUT_URL"
-
-      - uses: actions/checkout@v6
-
-      - uses: astral-sh/setup-uv@v7
-        with:
-          version: 0.9.22 # Latest as of 2026 Jan 07
-        # with/ END
-
-      - name: 'Install server'
-        run: uv tool install --force ./
-
-      - name: 'Run enqueue pipeline'
+      # `gh project item-add` accepts only issue/PR URLs, so register the URL as a draft item.
+      - name: 'Register url to the INBOX project'
         env:
-          OWNER_TOKEN: ${{ secrets.TOKEN }}
-          GITHUB_GRAPHQL_URL: 'https://api.github.com/graphql'
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          READIT_SUMMARY_MODEL: ${{ vars.READIT_SUMMARY_MODEL }}
-        run: endpoint-readit-enqueue --fetch-path "$FETCH_FILE" --summary-path "$SUMMARY_FILE" "$INPUT_URL"
-
-      - name: 'Upload artifacts'
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: readit-artifacts
-          path: |
-            ${{ env.FETCH_FILE }}
-            ${{ env.SUMMARY_FILE }}
-          if-no-files-found: ignore
+          GH_TOKEN: ${{ secrets.TOKEN }}
+          INPUT_URL: ${{ github.event.inputs.url }}
+        run: gh project item-create 1 --owner parjong-org --title "$INPUT_URL"
     # steps/ END
   # run/ END
 # jobs/ END
